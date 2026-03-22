@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Dashboard</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <main class="app-shell">
+      <header class="topbar-panel">
+        <div class="topbar-copy">
+          <p class="eyebrow">Project Dashboard</p>
+          <h1>Launch your local projects fast.</h1>
+          <p class="hero-copy">
+            A tighter launcher for your local project folders.
+            Search, scan, and reopen the exact project or workspace you want.
+          </p>
+        </div>
+
+        <div class="root-summary">
+          <p class="summary-label">Source Folder</p>
+          <code id="project-root-display">Loading...</code>
+          <p class="summary-note">
+            Workspace-backed projects stay near the top so your most prepared setups are
+            quickest to reopen.
+          </p>
+        </div>
+      </header>
+
+      <section class="toolbar-panel">
+        <label class="search-field" for="search-input">
+          <span>Find a project</span>
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Filter by name, folder, or workspace"
+            autocomplete="off"
+          />
+        </label>
+
+        <div class="toolbar-actions">
+          <button id="settings-button" type="button">Settings</button>
+          <div class="view-toggle" role="group" aria-label="Card density">
+            <button id="view-detailed" class="toggle-button is-active" type="button">Detailed</button>
+            <button id="view-compact" class="toggle-button" type="button">Compact</button>
+          </div>
+          <div class="stats-strip">
+            <span id="project-count">0 visible</span>
+            <span id="workspace-count">0 with workspaces</span>
+          </div>
+          <button id="refresh-button" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <p class="status-message" id="status-message" data-state="default"></p>
+      <section class="results-header">
+        <div>
+          <p class="section-label">Projects</p>
+          <h2>Ready To Launch</h2>
+        </div>
+        <p class="results-note">Minimal grid with workspace-first sorting.</p>
+      </section>
+      <section class="project-grid" id="project-grid" aria-live="polite"></section>
+
+      <dialog class="history-modal" id="history-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Git History</p>
+            <h2 id="history-project-name">Recent Commits</h2>
+            <p class="history-overview" id="history-overview"></p>
+          </div>
+          <button id="history-close" class="icon-button" type="button" aria-label="Close git history">Close</button>
+        </div>
+        <div class="history-controls">
+          <label class="branch-picker" for="history-branch-select">
+            <span class="detail-label">Branch</span>
+            <select id="history-branch-select"></select>
+          </label>
+        </div>
+        <p class="history-status" id="history-status"></p>
+        <div class="history-list" id="history-list"></div>
+      </dialog>
+
+      <dialog class="commit-modal" id="commit-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Commit Details</p>
+            <h2 id="commit-subject">Commit</h2>
+            <p class="history-overview" id="commit-meta"></p>
+          </div>
+          <button id="commit-close" class="icon-button" type="button" aria-label="Close commit details">Close</button>
+        </div>
+        <div class="commit-body-wrap">
+          <pre class="commit-body" id="commit-body"></pre>
+        </div>
+      </dialog>
+
+      <dialog class="tray-hint-modal" id="tray-hint-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Tray Behavior</p>
+            <h2>Closing keeps the app running.</h2>
+            <p class="history-overview">
+              Use the system tray icon to reopen Project Dashboard or quit it completely.
+            </p>
+          </div>
+          <button id="tray-hint-close" class="icon-button" type="button" aria-label="Close tray hint">Got it</button>
+        </div>
+        <div class="tray-hint-body">
+          <label class="tray-hint-check">
+            <input id="tray-hint-dismiss" type="checkbox" />
+            <span>Don't show this again</span>
+          </label>
+        </div>
+      </dialog>
+
+      <dialog class="settings-modal" id="settings-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Settings</p>
+            <h2>Project Root</h2>
+            <p class="history-overview">Choose the top-level folder Project Dashboard should scan.</p>
+          </div>
+          <button id="settings-close" class="icon-button" type="button" aria-label="Close settings">Close</button>
+        </div>
+        <form class="settings-form" id="settings-form">
+          <label class="search-field" for="project-root-input">
+            <span>Projects folder</span>
+            <input id="project-root-input" type="text" autocomplete="off" />
+          </label>
+          <p class="settings-help" id="project-root-default"></p>
+          <p class="settings-status" id="settings-status" data-state="default"></p>
+          <div class="settings-actions">
+            <button id="project-root-reset" class="button-secondary" type="button">Use Default</button>
+            <button id="project-root-save" type="submit">Save Root</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+  </body>
+</html>
