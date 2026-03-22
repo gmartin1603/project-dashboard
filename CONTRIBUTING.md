@@ -14,6 +14,7 @@ npm run tauri dev
 
 - run `npm run build`
 - run `cargo check` from `src-tauri/`
+- expect GitHub Actions to run the same build and Rust checks on pull requests
 - keep changes focused and easy to review
 - avoid committing generated artifacts like `dist/`, `node_modules/`, or `src-tauri/target/`
 
