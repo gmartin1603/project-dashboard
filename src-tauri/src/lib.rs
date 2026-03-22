@@ -92,7 +92,8 @@ fn default_project_root() -> PathBuf {
 }
 
 fn settings_file_path() -> Result<PathBuf, String> {
-    let config_dir = dirs::config_dir().ok_or_else(|| "Could not determine the config directory".to_string())?;
+    let config_dir =
+        dirs::config_dir().ok_or_else(|| "Could not determine the config directory".to_string())?;
     Ok(config_dir.join(SETTINGS_DIR_NAME).join(SETTINGS_FILE_NAME))
 }
 
@@ -226,7 +227,8 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
             Some(ProjectEntry {
                 name,
                 path: path.to_string_lossy().into_owned(),
-                workspace_path: workspace_path.map(|workspace| workspace.to_string_lossy().into_owned()),
+                workspace_path: workspace_path
+                    .map(|workspace| workspace.to_string_lossy().into_owned()),
                 has_workspace,
                 is_git_repo,
                 last_modified_epoch_ms,
@@ -239,7 +241,11 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
         right
             .has_workspace
             .cmp(&left.has_workspace)
-            .then_with(|| right.last_modified_epoch_ms.cmp(&left.last_modified_epoch_ms))
+            .then_with(|| {
+                right
+                    .last_modified_epoch_ms
+                    .cmp(&left.last_modified_epoch_ms)
+            })
             .then_with(|| left.name.cmp(&right.name))
     });
 
@@ -264,7 +270,10 @@ fn open_in_code(target_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_git_history(project_path: String, branch_name: Option<String>) -> Result<Vec<GitCommitEntry>, String> {
+fn get_git_history(
+    project_path: String,
+    branch_name: Option<String>,
+) -> Result<Vec<GitCommitEntry>, String> {
     let candidate = validate_path_within_code_root(&project_path)?;
 
     if !candidate.join(".git").exists() {
@@ -333,7 +342,9 @@ fn list_git_branches(project_path: String) -> Result<Vec<GitBranchEntry>, String
         .map_err(|error| format!("Could not read current branch: {error}"))?;
 
     if !current_output.status.success() {
-        let stderr = String::from_utf8_lossy(&current_output.stderr).trim().to_string();
+        let stderr = String::from_utf8_lossy(&current_output.stderr)
+            .trim()
+            .to_string();
         return Err(if stderr.is_empty() {
             format!("Git branch failed with status {}", current_output.status)
         } else {
@@ -341,7 +352,9 @@ fn list_git_branches(project_path: String) -> Result<Vec<GitBranchEntry>, String
         });
     }
 
-    let current_branch = String::from_utf8_lossy(&current_output.stdout).trim().to_string();
+    let current_branch = String::from_utf8_lossy(&current_output.stdout)
+        .trim()
+        .to_string();
 
     let output = Command::new("git")
         .arg("-C")
@@ -453,7 +466,10 @@ fn get_git_overview(project_path: String) -> Result<GitOverview, String> {
 }
 
 #[tauri::command]
-fn get_git_commit_details(project_path: String, commit_ref: String) -> Result<GitCommitDetails, String> {
+fn get_git_commit_details(
+    project_path: String,
+    commit_ref: String,
+) -> Result<GitCommitDetails, String> {
     let candidate = validate_path_within_code_root(&project_path)?;
 
     if !candidate.join(".git").exists() {
@@ -505,7 +521,8 @@ fn find_workspace(project_path: &Path) -> Option<PathBuf> {
 
         for entry in entries.flatten() {
             let candidate_path = entry.path();
-            let Some(extension) = candidate_path.extension().and_then(|value| value.to_str()) else {
+            let Some(extension) = candidate_path.extension().and_then(|value| value.to_str())
+            else {
                 continue;
             };
 
@@ -682,7 +699,10 @@ fn build_tray(app: &AppHandle) -> tauri::Result<TrayIcon> {
     )?;
     let launch_on_login_item_handle = launch_on_login_item.clone();
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_item, &refresh_item, &launch_on_login_item, &quit_item])?;
+    let menu = Menu::with_items(
+        app,
+        &[&show_item, &refresh_item, &launch_on_login_item, &quit_item],
+    )?;
     let icon = app.default_window_icon().cloned();
 
     let mut tray_builder = TrayIconBuilder::with_id("project-dashboard-tray")
@@ -723,6 +743,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<TrayIcon> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let _tray = build_tray(app.handle())?;

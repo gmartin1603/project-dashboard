@@ -12,6 +12,7 @@ Built with Tauri, TypeScript, and vanilla HTML/CSS.
 - show local tech hints for common stacks like Node, Rust, Python, Go, Java, .NET, and more
 - browse local git branches and recent commit history in-app
 - inspect commit details without leaving the launcher
+- switch between light, dark, or system theme modes
 - minimize to the system tray instead of quitting on window close
 - refresh from the tray and optionally launch on login
 
@@ -20,7 +21,7 @@ Built with Tauri, TypeScript, and vanilla HTML/CSS.
 - default project root: `~/code`
 - VS Code launcher command: `code`
 
-You can change the scanned root at runtime from the in-app settings dialog.
+You can change the scanned root and appearance at runtime from the in-app settings dialog.
 
 ## Requirements
 
@@ -77,14 +78,13 @@ Linux bundles are created under:
 On Debian-based systems, install or update with:
 
 ```bash
-sudo apt install ./src-tauri/target/release/bundle/deb/project-dashboard_0.1.0_amd64.deb
+sudo apt install "./src-tauri/target/release/bundle/deb/Project Dashboard_0.2.0_amd64.deb"
 ```
 
 ## Screenshots
 
-Add screenshots to a future `docs/` directory and reference them here before publishing the repository publicly.
-
 ![dashboard](docs/dashboard.png)
+![dashboard](docs/settings.png)
 
 ## Tray Behavior
 

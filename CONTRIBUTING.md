@@ -19,4 +19,4 @@ npm run tauri dev
 
 ## Scope Notes
 
-The current app still assumes a fixed local code root. If you want to work on open-source usability, configurable roots and onboarding are good next areas.
+Good areas for contribution include onboarding polish, packaging and release automation, broader desktop platform support, and UI refinements such as new project metadata or accessibility improvements.

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-dialog";
 
 type Project = {
   name: string;
@@ -65,6 +66,9 @@ type TechIconName =
 
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
+const THEME_STORAGE_KEY = "project-dashboard-theme";
+
+type ThemeMode = "light" | "dark" | "system";
 
 const state = {
   projects: [] as Project[],
@@ -72,6 +76,7 @@ const state = {
   query: "",
   openingPath: "",
   viewMode: loadViewMode(),
+  themeMode: loadThemeMode(),
   activeHistoryPath: "",
   activeHistoryBranch: "",
 };
@@ -111,9 +116,14 @@ let settingsModalEl: HTMLDialogElement;
 let settingsCloseButtonEl: HTMLButtonElement;
 let settingsFormEl: HTMLFormElement;
 let projectRootInputEl: HTMLInputElement;
+let projectRootBrowseEl: HTMLButtonElement;
 let projectRootDefaultEl: HTMLElement;
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
+let themeLightButtonEl: HTMLButtonElement;
+let themeDarkButtonEl: HTMLButtonElement;
+let themeSystemButtonEl: HTMLButtonElement;
+let systemThemeMediaQuery: MediaQueryList | null = null;
 
 async function initializeApp() {
   await fetchSettings();
@@ -613,6 +623,54 @@ function syncViewToggle() {
   viewCompactButtonEl.setAttribute("aria-pressed", String(!isDetailed));
 }
 
+function loadThemeMode(): ThemeMode {
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored;
+  }
+
+  return "system";
+}
+
+function getResolvedThemeMode() {
+  if (state.themeMode === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  return state.themeMode;
+}
+
+function applyThemeMode() {
+  const resolvedThemeMode = getResolvedThemeMode();
+  document.documentElement.dataset.theme = resolvedThemeMode;
+
+  const isLight = state.themeMode === "light";
+  const isDark = state.themeMode === "dark";
+  const isSystem = state.themeMode === "system";
+  themeLightButtonEl.classList.toggle("is-active", isLight);
+  themeDarkButtonEl.classList.toggle("is-active", isDark);
+  themeSystemButtonEl.classList.toggle("is-active", isSystem);
+  themeLightButtonEl.setAttribute("aria-pressed", String(isLight));
+  themeDarkButtonEl.setAttribute("aria-pressed", String(isDark));
+  themeSystemButtonEl.setAttribute("aria-pressed", String(isSystem));
+  themeSystemButtonEl.textContent = `System (${resolvedThemeMode === "dark" ? "Dark" : "Light"})`;
+}
+
+function setThemeMode(themeMode: ThemeMode) {
+  state.themeMode = themeMode;
+  window.localStorage.setItem(THEME_STORAGE_KEY, state.themeMode);
+  applyThemeMode();
+}
+
+function syncSystemThemeListener() {
+  if (systemThemeMediaQuery) {
+    systemThemeMediaQuery.removeEventListener("change", applyThemeMode);
+  }
+
+  systemThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  systemThemeMediaQuery.addEventListener("change", applyThemeMode);
+}
+
 async function openInCode(targetPath: string, message: string) {
   state.openingPath = targetPath;
   syncBusyButtons();
@@ -693,6 +751,28 @@ async function saveProjectRoot(projectRoot: string) {
   }
 }
 
+async function browseProjectRoot() {
+  const defaultPath = projectRootInputEl.value.trim() || state.settings?.projectRoot || state.settings?.defaultProjectRoot;
+
+  try {
+    const selection = await open({
+      defaultPath,
+      directory: true,
+      multiple: false,
+      title: "Choose projects folder",
+    });
+
+    if (typeof selection !== "string") {
+      return;
+    }
+
+    projectRootInputEl.value = selection;
+    setSettingsStatus(`Selected ${selection}`);
+  } catch (error) {
+    setSettingsStatus(`Could not browse for a folder: ${String(error)}`, true);
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   searchInputEl = document.querySelector("#search-input") as HTMLInputElement;
   projectGridEl = document.querySelector("#project-grid") as HTMLElement;
@@ -723,9 +803,13 @@ window.addEventListener("DOMContentLoaded", () => {
   settingsCloseButtonEl = document.querySelector("#settings-close") as HTMLButtonElement;
   settingsFormEl = document.querySelector("#settings-form") as HTMLFormElement;
   projectRootInputEl = document.querySelector("#project-root-input") as HTMLInputElement;
+  projectRootBrowseEl = document.querySelector("#project-root-browse") as HTMLButtonElement;
   projectRootDefaultEl = document.querySelector("#project-root-default") as HTMLElement;
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
+  themeLightButtonEl = document.querySelector("#theme-light") as HTMLButtonElement;
+  themeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
+  themeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
 
   searchInputEl.addEventListener("input", (event) => {
     state.query = (event.target as HTMLInputElement).value;
@@ -747,6 +831,22 @@ window.addEventListener("DOMContentLoaded", () => {
   settingsFormEl.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveProjectRoot(projectRootInputEl.value);
+  });
+
+  projectRootBrowseEl.addEventListener("click", async () => {
+    await browseProjectRoot();
+  });
+
+  themeLightButtonEl.addEventListener("click", () => {
+    setThemeMode("light");
+  });
+
+  themeDarkButtonEl.addEventListener("click", () => {
+    setThemeMode("dark");
+  });
+
+  themeSystemButtonEl.addEventListener("click", () => {
+    setThemeMode("system");
   });
 
   projectRootResetEl.addEventListener("click", async () => {
@@ -808,5 +908,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
+  syncSystemThemeListener();
+  applyThemeMode();
   void initializeApp();
 });
