@@ -233,10 +233,34 @@ function createProjectCard(project: Project) {
 
   const status = document.createElement("div");
   status.className = "status-row";
-  status.append(createBadge(project.hasWorkspace ? "Workspace ready" : "Folder only", project.hasWorkspace ? "workspace" : "folder"));
+  if (project.workspacePath) {
+    status.append(
+      createStatusAction(
+        "workspace",
+        `Open ${project.name} workspace in VS Code`,
+        async () => {
+          await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
+        },
+      ),
+    );
+  }
+
+  status.append(
+    createStatusAction(
+      project.workspacePath ? "folder" : "workspace",
+      project.workspacePath ? `Open ${project.name} folder in VS Code` : `Open ${project.name} in VS Code`,
+      async () => {
+        await openInCode(project.path, `Opened ${project.name} in VS Code.`);
+      },
+    ),
+  );
 
   if (project.isGitRepo) {
-    status.append(createBadge("Git repo", "git"));
+    status.append(
+      createStatusAction("git", `View git history for ${project.name}`, async () => {
+        await openGitHistory(project);
+      }),
+    );
   }
 
   const title = document.createElement("h3");
@@ -284,39 +308,23 @@ function createProjectCard(project: Project) {
 
   detailsPanel.prepend(detailsHeader, detailValue);
 
+  footerMeta.append(modified);
+
   const actions = document.createElement("div");
   actions.className = "project-actions";
 
-  const utilityActions = document.createElement("div");
-  utilityActions.className = "utility-actions";
-
-  if (project.isGitRepo) {
-    const gitButton = document.createElement("button");
-    gitButton.type = "button";
-    gitButton.className = "icon-pill icon-pill-git";
-    gitButton.setAttribute("aria-label", `View git history for ${project.name}`);
-    gitButton.title = "View git history";
-    gitButton.append(createIcon("git", "badge-icon"));
-    gitButton.addEventListener("click", async () => {
-      await openGitHistory(project);
-    });
-    utilityActions.append(gitButton);
-  }
-
-  footerMeta.append(modified, utilityActions);
-
-  const openFolderButton = createActionButton(project.workspacePath ? "Open Folder" : "Open Project", async () => {
-    await openInCode(project.path, `Opened ${project.name} in VS Code.`);
-  }, false, "folder");
-
   if (project.workspacePath) {
-    const openWorkspaceButton = createActionButton("Open Workspace", async () => {
+    const openWorkspaceButton = document.createElement("button");
+    openWorkspaceButton.type = "button";
+    openWorkspaceButton.className = "primary-action";
+    openWorkspaceButton.append(createIcon("workspace", "button-icon"), "Open Workspace");
+    openWorkspaceButton.title = `Open ${project.name} workspace in VS Code`;
+    openWorkspaceButton.setAttribute("aria-label", `Open ${project.name} workspace in VS Code`);
+    openWorkspaceButton.dataset.baseDisabled = "false";
+    openWorkspaceButton.addEventListener("click", async () => {
       await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
-    }, false, "workspace");
-    openWorkspaceButton.classList.add("button-secondary");
-    actions.append(openWorkspaceButton, openFolderButton);
-  } else {
-    actions.append(openFolderButton);
+    });
+    actions.append(openWorkspaceButton);
   }
 
   footer.append(footerMeta, actions);
@@ -344,22 +352,13 @@ function createTechBadge(tag: TechIconName) {
   return chip;
 }
 
-function createBadge(label: string, variant: IconName) {
-  const badge = document.createElement("span");
-  badge.className = `badge badge-${variant}`;
-  badge.append(createIcon(variant, "badge-icon"));
-  badge.title = label;
-  badge.setAttribute("aria-label", label);
-  return badge;
-}
-
-function createActionButton(label: string, onClick: () => Promise<void>, initiallyDisabled = false, icon?: IconName) {
+function createStatusAction(icon: IconName, label: string, onClick: () => Promise<void>, initiallyDisabled = false) {
   const button = document.createElement("button");
   button.type = "button";
-  if (icon) {
-    button.append(createIcon(icon, "button-icon"));
-  }
-  button.append(label);
+  button.className = `status-action status-action-${icon}`;
+  button.append(createIcon(icon, "badge-icon"));
+  button.title = label;
+  button.setAttribute("aria-label", label);
   button.dataset.baseDisabled = String(initiallyDisabled);
   button.disabled = initiallyDisabled;
   button.addEventListener("click", async () => {
@@ -688,7 +687,7 @@ async function openInCode(targetPath: string, message: string) {
 }
 
 function syncBusyButtons() {
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".project-actions button, #refresh-button");
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button");
   const isBusy = state.openingPath.length > 0;
 
   for (const button of buttons) {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
     time::UNIX_EPOCH,
@@ -256,8 +256,31 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
 fn open_in_code(target_path: String) -> Result<(), String> {
     let candidate = validate_path_within_code_root(&target_path)?;
 
-    let status = Command::new("code")
-        .arg("--new-window")
+    let shell = env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+    let shell_name = Path::new(&shell)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("sh");
+    let code_command = concat!(
+        "command -v code >/dev/null 2>&1 || { ",
+        "printf 'VS Code CLI command \\\"code\\\" was not found in the shell environment.\\n' >&2; ",
+        "exit 127; ",
+        "}; ",
+        "code --new-window \"$1\""
+    );
+
+    let mut command = Command::new(&shell);
+    match shell_name {
+        "fish" => {
+            command.arg("-l").arg("-i").arg("-c").arg(code_command);
+        }
+        _ => {
+            command.arg("-lic").arg(code_command);
+        }
+    }
+
+    let status = command
+        .arg("project-dashboard")
         .arg(&candidate)
         .status()
         .map_err(|error| format!("Could not launch VS Code: {error}"))?;

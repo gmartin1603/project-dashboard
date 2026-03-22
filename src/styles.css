@@ -431,19 +431,31 @@ button:disabled {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
-.badge-workspace {
+.status-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.status-action-workspace {
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.badge-folder {
+.status-action-folder {
   background: var(--folder-soft);
   color: var(--folder-text);
 }
 
-.badge-git {
+.status-action-git {
   background: var(--git-soft);
   color: var(--git-text);
 }
@@ -521,29 +533,8 @@ button:disabled {
 .footer-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   min-width: 0;
-}
-
-.utility-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.icon-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 999px;
-  background: var(--panel-strong);
-}
-
-.icon-pill-git {
-  color: var(--git-text);
-  background: var(--git-soft);
 }
 
 .project-actions {
@@ -557,22 +548,18 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 124px;
+  min-width: 164px;
 }
 
-.project-actions button:not(.button-secondary) {
+.project-actions .primary-action {
   background: var(--accent);
   color: var(--primary-button-text);
   border-color: transparent;
 }
 
-.project-actions button:not(.button-secondary):hover:not(:disabled) {
+.project-actions .primary-action:hover:not(:disabled) {
   border-color: transparent;
   background: var(--accent-strong);
-}
-
-.button-secondary {
-  background: var(--panel-strong);
 }
 
 .empty-state {
@@ -847,11 +834,6 @@ button:disabled {
   font-size: 0.88rem;
 }
 
-.project-grid[data-view-mode="compact"] .project-actions button {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 .empty-state h2 {
   margin: 0 0 10px;
 }
@@ -885,11 +867,13 @@ button:disabled {
     justify-content: flex-start;
   }
 
-  .toolbar-actions,
-  .project-actions,
-  .utility-actions {
+  .toolbar-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .project-actions {
+    width: 100%;
   }
 
   .settings-actions {
@@ -905,8 +889,7 @@ button:disabled {
   }
 
   .footer-meta {
-    flex-direction: column;
-    align-items: stretch;
+    width: 100%;
   }
 
   .project-actions button {
