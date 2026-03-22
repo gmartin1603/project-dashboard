@@ -22,11 +22,14 @@ const EVENT_REFRESH_PROJECTS: &str = "tray://refresh-projects";
 struct AppSettingsResponse {
     project_root: String,
     default_project_root: String,
+    preferred_terminal: String,
 }
 
 #[derive(Deserialize, Serialize)]
 struct StoredSettings {
     project_root: String,
+    #[serde(default = "default_preferred_terminal")]
+    preferred_terminal: String,
 }
 
 #[derive(Serialize)]
@@ -78,6 +81,101 @@ struct GitCommitDetails {
     authored_relative_time: String,
 }
 
+fn default_workspace_contents() -> String {
+    serde_json::json!({
+        "folders": [
+            {
+                "path": "."
+            }
+        ],
+        "settings": {
+            "files.exclude": {
+                "**/.git": true,
+                "**/.DS_Store": true
+            },
+            "search.exclude": {
+                "**/.git": true
+            },
+            "files.insertFinalNewline": true,
+            "files.trimTrailingWhitespace": true
+        }
+    })
+    .to_string()
+}
+
+fn default_preferred_terminal() -> String {
+    "auto".to_string()
+}
+
+fn supported_terminals() -> &'static [&'static str] {
+    &[
+        "auto",
+        "x-terminal-emulator",
+        "gnome-terminal",
+        "ptyxis",
+        "kgx",
+        "konsole",
+        "xfce4-terminal",
+        "tilix",
+        "alacritty",
+        "kitty",
+        "wezterm",
+        "foot",
+    ]
+}
+
+fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
+
+    if supported_terminals().contains(&normalized.as_str()) {
+        Ok(normalized)
+    } else {
+        Err(format!("Unsupported terminal preference: {value}"))
+    }
+}
+
+fn shell_command(
+    shell_text: &str,
+    shell_arg: Option<&Path>,
+    working_directory: Option<&Path>,
+) -> Result<(), String> {
+    let shell = env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+    let shell_name = Path::new(&shell)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("sh");
+
+    let mut command = Command::new(&shell);
+    match shell_name {
+        "fish" => {
+            command.arg("-l").arg("-i").arg("-c").arg(shell_text);
+        }
+        _ => {
+            command.arg("-lic").arg(shell_text);
+        }
+    }
+
+    command.arg("project-dashboard");
+
+    if let Some(arg) = shell_arg {
+        command.arg(arg);
+    }
+
+    if let Some(directory) = working_directory {
+        command.current_dir(directory);
+    }
+
+    let status = command
+        .status()
+        .map_err(|error| format!("Could not launch command: {error}"))?;
+
+    if !status.success() {
+        return Err(format!("Command exited with status {status}"));
+    }
+
+    Ok(())
+}
+
 fn desktop_entry_contents(binary_path: &Path) -> String {
     format!(
         "[Desktop Entry]\nType=Application\nName=Project Dashboard\nExec={}\nIcon=project-dashboard\nTerminal=false\nCategories=Development;Utility;\nStartupNotify=true\n",
@@ -104,6 +202,7 @@ fn load_settings() -> Result<StoredSettings, String> {
     if !settings_path.exists() {
         return Ok(StoredSettings {
             project_root: default_root,
+            preferred_terminal: default_preferred_terminal(),
         });
     }
 
@@ -115,9 +214,15 @@ fn load_settings() -> Result<StoredSettings, String> {
     if settings.project_root.trim().is_empty() {
         Ok(StoredSettings {
             project_root: default_root,
+            preferred_terminal: normalize_preferred_terminal(&settings.preferred_terminal)
+                .unwrap_or_else(|_| default_preferred_terminal()),
         })
     } else {
-        Ok(settings)
+        Ok(StoredSettings {
+            project_root: settings.project_root,
+            preferred_terminal: normalize_preferred_terminal(&settings.preferred_terminal)
+                .unwrap_or_else(|_| default_preferred_terminal()),
+        })
     }
 }
 
@@ -163,6 +268,7 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
     Ok(AppSettingsResponse {
         project_root: settings.project_root,
         default_project_root: default_project_root().to_string_lossy().into_owned(),
+        preferred_terminal: settings.preferred_terminal,
     })
 }
 
@@ -174,6 +280,7 @@ fn get_app_settings() -> Result<AppSettingsResponse, String> {
 #[tauri::command]
 fn update_project_root(project_root: String) -> Result<AppSettingsResponse, String> {
     let candidate = PathBuf::from(project_root.trim());
+    let mut settings = load_settings()?;
 
     if candidate.as_os_str().is_empty() {
         return Err("Project root cannot be empty.".to_string());
@@ -190,9 +297,17 @@ fn update_project_root(project_root: String) -> Result<AppSettingsResponse, Stri
     let canonical = fs::canonicalize(&candidate)
         .map_err(|error| format!("Could not access {}: {error}", candidate.display()))?;
 
-    save_settings(&StoredSettings {
-        project_root: canonical.to_string_lossy().into_owned(),
-    })?;
+    settings.project_root = canonical.to_string_lossy().into_owned();
+    save_settings(&settings)?;
+
+    app_settings_response()
+}
+
+#[tauri::command]
+fn update_preferred_terminal(preferred_terminal: String) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings()?;
+    settings.preferred_terminal = normalize_preferred_terminal(&preferred_terminal)?;
+    save_settings(&settings)?;
 
     app_settings_response()
 }
@@ -255,41 +370,112 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
 #[tauri::command]
 fn open_in_code(target_path: String) -> Result<(), String> {
     let candidate = validate_path_within_code_root(&target_path)?;
-
-    let shell = env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-    let shell_name = Path::new(&shell)
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or("sh");
+    let working_directory = if candidate.is_dir() {
+        candidate.as_path()
+    } else {
+        candidate.parent().unwrap_or(candidate.as_path())
+    };
     let code_command = concat!(
         "command -v code >/dev/null 2>&1 || { ",
-        "printf 'VS Code CLI command \\\"code\\\" was not found in the shell environment.\\n' >&2; ",
+        "printf 'VS Code CLI command \"code\" was not found in the shell environment.\n' >&2; ",
         "exit 127; ",
         "}; ",
         "code --new-window \"$1\""
     );
 
-    let mut command = Command::new(&shell);
-    match shell_name {
-        "fish" => {
-            command.arg("-l").arg("-i").arg("-c").arg(code_command);
-        }
-        _ => {
-            command.arg("-lic").arg(code_command);
-        }
+    shell_command(code_command, Some(&candidate), Some(working_directory))
+        .map_err(|error| format!("Could not launch VS Code: {error}"))
+}
+
+#[tauri::command]
+fn open_in_terminal(target_path: String) -> Result<(), String> {
+    let candidate = validate_path_within_code_root(&target_path)?;
+    let preferred_terminal = load_settings()?.preferred_terminal;
+    let candidate_display = candidate.to_string_lossy().replace('"', "\\\"");
+    let terminal_command = if preferred_terminal == "auto" {
+        format!(
+            concat!(
+                "if command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator; ",
+                "elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal --working-directory=\"{0}\"; ",
+                "elif command -v ptyxis >/dev/null 2>&1; then ptyxis --new-window --working-directory \"{0}\"; ",
+                "elif command -v kgx >/dev/null 2>&1; then kgx --working-directory=\"{0}\"; ",
+                "elif command -v konsole >/dev/null 2>&1; then konsole --workdir \"{0}\"; ",
+                "elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal --working-directory=\"{0}\"; ",
+                "elif command -v tilix >/dev/null 2>&1; then tilix --working-directory=\"{0}\"; ",
+                "elif command -v alacritty >/dev/null 2>&1; then alacritty --working-directory \"{0}\"; ",
+                "elif command -v kitty >/dev/null 2>&1; then kitty --directory \"{0}\"; ",
+                "elif command -v wezterm >/dev/null 2>&1; then wezterm start --cwd \"{0}\"; ",
+                "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"{0}\"; ",
+                "else printf 'No supported terminal app was found in the shell environment.\\n' >&2; exit 127; fi"
+            ),
+            candidate_display
+        )
+    } else {
+        let launch_command = match preferred_terminal.as_str() {
+            "x-terminal-emulator" => preferred_terminal.clone(),
+            "gnome-terminal" => {
+                format!("gnome-terminal --working-directory=\"{candidate_display}\"")
+            }
+            "ptyxis" => format!("ptyxis --new-window --working-directory \"{candidate_display}\""),
+            "kgx" => format!("kgx --working-directory=\"{candidate_display}\""),
+            "konsole" => format!("konsole --workdir \"{candidate_display}\""),
+            "xfce4-terminal" => {
+                format!("xfce4-terminal --working-directory=\"{candidate_display}\"")
+            }
+            "tilix" => format!("tilix --working-directory=\"{candidate_display}\""),
+            "alacritty" => format!("alacritty --working-directory \"{candidate_display}\""),
+            "kitty" => format!("kitty --directory \"{candidate_display}\""),
+            "wezterm" => format!("wezterm start --cwd \"{candidate_display}\""),
+            "foot" => format!("foot --working-directory=\"{candidate_display}\""),
+            _ => preferred_terminal.clone(),
+        };
+
+        format!(
+            "command -v {0} >/dev/null 2>&1 || {{ printf 'Preferred terminal \\\"{0}\\\" was not found in the shell environment.\\n' >&2; exit 127; }}; {1}",
+            preferred_terminal,
+            launch_command
+        )
+    };
+
+    shell_command(&terminal_command, None, Some(&candidate))
+        .map_err(|error| format!("Could not launch Terminal: {error}"))
+}
+
+#[tauri::command]
+fn create_default_workspace(project_path: String) -> Result<String, String> {
+    let candidate = validate_path_within_code_root(&project_path)?;
+
+    if !candidate.is_dir() {
+        return Err(format!("{} is not a project folder.", candidate.display()));
     }
 
-    let status = command
-        .arg("project-dashboard")
-        .arg(&candidate)
-        .status()
-        .map_err(|error| format!("Could not launch VS Code: {error}"))?;
-
-    if !status.success() {
-        return Err(format!("VS Code exited with status {status}"));
+    if let Some(existing_workspace) = find_workspace(&candidate) {
+        return Err(format!(
+            "A workspace already exists for {} at {}.",
+            candidate.display(),
+            existing_workspace.display()
+        ));
     }
 
-    Ok(())
+    let project_name = candidate
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| {
+            format!(
+                "Could not determine a workspace name for {}.",
+                candidate.display()
+            )
+        })?;
+    let workspace_path = candidate.join(format!("{project_name}.code-workspace"));
+
+    fs::write(&workspace_path, default_workspace_contents()).map_err(|error| {
+        format!(
+            "Could not write default workspace {}: {error}",
+            workspace_path.display()
+        )
+    })?;
+
+    Ok(workspace_path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -781,8 +967,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_app_settings,
             update_project_root,
+            update_preferred_terminal,
             list_projects,
             open_in_code,
+            open_in_terminal,
+            create_default_workspace,
             get_git_history,
             list_git_branches,
             get_git_overview,

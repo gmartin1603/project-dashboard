@@ -158,6 +158,30 @@
               <button id="theme-system" class="toggle-button" type="button">System</button>
             </div>
           </section>
+
+          <section class="settings-section">
+            <div class="settings-section-header">
+              <p class="section-label">Terminal</p>
+              <p class="settings-help">Choose which terminal Project Dashboard should try first.</p>
+            </div>
+            <label class="branch-picker" for="preferred-terminal-select">
+              <span class="detail-label">Preferred terminal</span>
+              <select id="preferred-terminal-select">
+                <option value="auto">Auto detect</option>
+                <option value="x-terminal-emulator">x-terminal-emulator</option>
+                <option value="gnome-terminal">GNOME Terminal</option>
+                <option value="ptyxis">Ptyxis</option>
+                <option value="kgx">Console (kgx)</option>
+                <option value="konsole">Konsole</option>
+                <option value="xfce4-terminal">Xfce Terminal</option>
+                <option value="tilix">Tilix</option>
+                <option value="alacritty">Alacritty</option>
+                <option value="kitty">Kitty</option>
+                <option value="wezterm">WezTerm</option>
+                <option value="foot">Foot</option>
+              </select>
+            </label>
+          </section>
         </form>
       </dialog>
     </main>

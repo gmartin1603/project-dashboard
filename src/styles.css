@@ -460,6 +460,11 @@ button:disabled {
   color: var(--git-text);
 }
 
+.status-action-terminal {
+  background: var(--panel-strong);
+  color: var(--text);
+}
+
 .project-details {
   display: grid;
   gap: 6px;
@@ -555,6 +560,11 @@ button:disabled {
   background: var(--accent);
   color: var(--primary-button-text);
   border-color: transparent;
+}
+
+.project-actions .secondary-action {
+  background: var(--panel-strong);
+  color: var(--text);
 }
 
 .project-actions .primary-action:hover:not(:disabled) {
@@ -817,6 +827,21 @@ button:disabled {
   border-radius: 12px;
   background: var(--panel-strong);
   flex-wrap: wrap;
+}
+
+.settings-section select {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  padding: 0.72rem 0.9rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-strong);
+}
+
+.settings-section select:focus {
+  outline: 2px solid var(--focus-outline);
+  outline-offset: 2px;
 }
 
 .project-grid[data-view-mode="compact"] {

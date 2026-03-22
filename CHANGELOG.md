@@ -1,9 +1,11 @@
 # Changelog
 
-## 0.2.1
+## 0.2.2
 
-- fixed VS Code launches from the dashboard so shell-defined launch commands and environment setup work reliably
-- polished workspace and folder actions in the project cards
+- added one-click creation for default VS Code workspace files from project cards
+- added terminal launch actions on project cards with preferred terminal selection in settings
+- fixed terminal launches so they open in the selected project directory
+- fixed VS Code launches so shell-defined launch commands and environment setup work reliably
 
 ## 0.2.0
 

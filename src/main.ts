@@ -15,6 +15,7 @@ type Project = {
 type AppSettings = {
   projectRoot: string;
   defaultProjectRoot: string;
+  preferredTerminal: string;
 };
 
 type GitCommitEntry = {
@@ -47,7 +48,7 @@ type GitCommitDetails = {
 };
 
 type ViewMode = "detailed" | "compact";
-type IconName = "workspace" | "folder" | "git";
+type IconName = "workspace" | "folder" | "git" | "terminal";
 type TechIconName =
   | "node"
   | "bun"
@@ -75,6 +76,8 @@ const state = {
   settings: null as AppSettings | null,
   query: "",
   openingPath: "",
+  creatingWorkspacePath: "",
+  terminalPath: "",
   viewMode: loadViewMode(),
   themeMode: loadThemeMode(),
   activeHistoryPath: "",
@@ -118,6 +121,7 @@ let settingsFormEl: HTMLFormElement;
 let projectRootInputEl: HTMLInputElement;
 let projectRootBrowseEl: HTMLButtonElement;
 let projectRootDefaultEl: HTMLElement;
+let preferredTerminalSelectEl: HTMLSelectElement;
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
 let themeLightButtonEl: HTMLButtonElement;
@@ -147,6 +151,7 @@ function syncSettingsUi() {
   projectRootDisplayEl.textContent = state.settings.projectRoot;
   projectRootInputEl.value = state.settings.projectRoot;
   projectRootDefaultEl.textContent = `Default root: ${state.settings.defaultProjectRoot}`;
+  preferredTerminalSelectEl.value = state.settings.preferredTerminal;
 }
 
 async function fetchProjects() {
@@ -191,12 +196,15 @@ function renderProjects() {
       <p>Your search checks names, folders, and workspace files.</p>
     `;
     projectGridEl.append(emptyState);
+    syncBusyButtons();
     return;
   }
 
   for (const project of filteredProjects) {
     projectGridEl.append(createProjectCard(project));
   }
+
+  syncBusyButtons();
 }
 
 function getFilteredProjects() {
@@ -243,12 +251,32 @@ function createProjectCard(project: Project) {
         },
       ),
     );
+  } else {
+    status.append(
+      createStatusAction(
+        "workspace",
+        `Create default workspace for ${project.name}`,
+        async () => {
+          await createDefaultWorkspace(project);
+        },
+      ),
+    );
   }
 
   status.append(
     createStatusAction(
-      project.workspacePath ? "folder" : "workspace",
-      project.workspacePath ? `Open ${project.name} folder in VS Code` : `Open ${project.name} in VS Code`,
+      "terminal",
+      `Open ${project.name} in Terminal`,
+      async () => {
+        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
+      },
+    ),
+  );
+
+  status.append(
+    createStatusAction(
+      "folder",
+      `Open ${project.name} folder in VS Code`,
       async () => {
         await openInCode(project.path, `Opened ${project.name} in VS Code.`);
       },
@@ -325,7 +353,31 @@ function createProjectCard(project: Project) {
       await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
     });
     actions.append(openWorkspaceButton);
+  } else {
+    const createWorkspaceButton = document.createElement("button");
+    createWorkspaceButton.type = "button";
+    createWorkspaceButton.className = "primary-action";
+    createWorkspaceButton.append(createIcon("workspace", "button-icon"), "Create Workspace");
+    createWorkspaceButton.title = `Create a default workspace for ${project.name}`;
+    createWorkspaceButton.setAttribute("aria-label", `Create a default workspace for ${project.name}`);
+    createWorkspaceButton.dataset.baseDisabled = "false";
+    createWorkspaceButton.addEventListener("click", async () => {
+      await createDefaultWorkspace(project);
+    });
+    actions.append(createWorkspaceButton);
   }
+
+  const openTerminalButton = document.createElement("button");
+  openTerminalButton.type = "button";
+  openTerminalButton.className = "secondary-action";
+  openTerminalButton.append(createIcon("terminal", "button-icon"), "Open Terminal");
+  openTerminalButton.title = `Open ${project.name} in Terminal`;
+  openTerminalButton.setAttribute("aria-label", `Open ${project.name} in Terminal`);
+  openTerminalButton.dataset.baseDisabled = "false";
+  openTerminalButton.addEventListener("click", async () => {
+    await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
+  });
+  actions.append(openTerminalButton);
 
   footer.append(footerMeta, actions);
   card.append(header, detailsPanel, footer);
@@ -417,6 +469,12 @@ function getIconPaths(name: IconName) {
         { tag: "circle", attributes: { ...common, cx: "15", cy: "15", r: "1.25" } },
         { tag: "path", attributes: { ...common, d: "M10 10v4" } },
         { tag: "path", attributes: { ...common, d: "M10 10l4 4" } },
+      ];
+    case "terminal":
+      return [
+        { tag: "rect", attributes: { ...common, x: "3", y: "5", width: "18", height: "14", rx: "2.5" } },
+        { tag: "path", attributes: { ...common, d: "M7.5 10.5 10 12l-2.5 1.5" } },
+        { tag: "path", attributes: { ...common, d: "M12.5 14.5h4" } },
       ];
     case "folder":
     default:
@@ -686,9 +744,42 @@ async function openInCode(targetPath: string, message: string) {
   }
 }
 
+async function openInTerminal(targetPath: string, message: string) {
+  state.terminalPath = targetPath;
+  syncBusyButtons();
+  setStatus(`Launching Terminal for ${targetPath}...`);
+
+  try {
+    await invoke("open_in_terminal", { targetPath });
+    setStatus(message);
+  } catch (error) {
+    setStatus(String(error), true);
+  } finally {
+    state.terminalPath = "";
+    syncBusyButtons();
+  }
+}
+
+async function createDefaultWorkspace(project: Project) {
+  state.creatingWorkspacePath = project.path;
+  syncBusyButtons();
+  setStatus(`Creating a default workspace for ${project.name}...`);
+
+  try {
+    await invoke<string>("create_default_workspace", { projectPath: project.path });
+    await fetchProjects();
+    setStatus(`Created a default workspace for ${project.name}.`);
+  } catch (error) {
+    setStatus(String(error), true);
+  } finally {
+    state.creatingWorkspacePath = "";
+    syncBusyButtons();
+  }
+}
+
 function syncBusyButtons() {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button");
-  const isBusy = state.openingPath.length > 0;
+  const isBusy = state.openingPath.length > 0 || state.creatingWorkspacePath.length > 0 || state.terminalPath.length > 0;
 
   for (const button of buttons) {
     const baseDisabled = button.dataset.baseDisabled === "true";
@@ -733,6 +824,7 @@ function openSettings() {
   }
 
   projectRootInputEl.value = state.settings.projectRoot;
+  preferredTerminalSelectEl.value = state.settings.preferredTerminal;
   setSettingsStatus("");
   settingsModalEl.showModal();
 }
@@ -745,6 +837,18 @@ async function saveProjectRoot(projectRoot: string) {
     syncSettingsUi();
     setSettingsStatus("Project root updated.");
     await fetchProjects();
+  } catch (error) {
+    setSettingsStatus(String(error), true);
+  }
+}
+
+async function savePreferredTerminal(preferredTerminal: string) {
+  setSettingsStatus("Saving preferred terminal...");
+
+  try {
+    state.settings = await invoke<AppSettings>("update_preferred_terminal", { preferredTerminal });
+    syncSettingsUi();
+    setSettingsStatus("Preferred terminal updated.");
   } catch (error) {
     setSettingsStatus(String(error), true);
   }
@@ -804,6 +908,7 @@ window.addEventListener("DOMContentLoaded", () => {
   projectRootInputEl = document.querySelector("#project-root-input") as HTMLInputElement;
   projectRootBrowseEl = document.querySelector("#project-root-browse") as HTMLButtonElement;
   projectRootDefaultEl = document.querySelector("#project-root-default") as HTMLElement;
+  preferredTerminalSelectEl = document.querySelector("#preferred-terminal-select") as HTMLSelectElement;
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
   themeLightButtonEl = document.querySelector("#theme-light") as HTMLButtonElement;
@@ -834,6 +939,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   projectRootBrowseEl.addEventListener("click", async () => {
     await browseProjectRoot();
+  });
+
+  preferredTerminalSelectEl.addEventListener("change", async (event) => {
+    await savePreferredTerminal((event.target as HTMLSelectElement).value);
   });
 
   themeLightButtonEl.addEventListener("click", () => {
