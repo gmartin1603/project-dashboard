@@ -7,5 +7,5 @@
 - test the `.deb` install on a clean-ish machine or user session
 - verify tray behavior, launch-on-login, and configurable project root
 - add or refresh screenshots in the README
-- create and push a version tag like `v0.2.0` to trigger the GitHub release workflow
+- create and push a version tag like `v0.2.1` to trigger the GitHub release workflow
 - update `CHANGELOG.md`

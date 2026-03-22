@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- fixed VS Code launches from the dashboard so shell-defined launch commands and environment setup work reliably
+- polished workspace and folder actions in the project cards
+
 ## 0.2.0
 
 - added configurable project root settings

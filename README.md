@@ -78,7 +78,7 @@ Linux bundles are created under:
 On Debian-based systems, install or update with:
 
 ```bash
-sudo apt install "./src-tauri/target/release/bundle/deb/Project Dashboard_0.2.0_amd64.deb"
+sudo apt install "./src-tauri/target/release/bundle/deb/Project Dashboard_0.2.1_amd64.deb"
 ```
 
 ## Screenshots
