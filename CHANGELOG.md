@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- made the app version visible in the main dashboard header
+- fixed launcher shell behavior so terminal and VS Code opens do not stall the packaged app
+- moved the updated timestamp onto its own bottom row on project cards
+
 ## 0.2.2
 
 - added one-click creation for default VS Code workspace files from project cards

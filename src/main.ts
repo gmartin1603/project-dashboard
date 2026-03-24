@@ -1,6 +1,8 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import packageJson from "../package.json";
 
 type Project = {
   name: string;
@@ -68,8 +70,43 @@ type TechIconName =
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
 const THEME_STORAGE_KEY = "project-dashboard-theme";
+const FALLBACK_APP_VERSION = packageJson.version;
 
 type ThemeMode = "light" | "dark" | "system";
+
+type ReleaseNoteEntry = {
+  version: string;
+  items: string[];
+};
+
+const RELEASE_NOTES: ReleaseNoteEntry[] = [
+  {
+    version: "0.2.3",
+    items: [
+      "Made the app version visible in the dashboard header.",
+      "Fixed launcher behavior so terminal and VS Code opens do not stall the packaged app.",
+      "Moved the updated timestamp onto its own bottom row on project cards.",
+    ],
+  },
+  {
+    version: "0.2.2",
+    items: [
+      "Added one-click creation for default VS Code workspace files from project cards.",
+      "Added terminal launch actions on project cards with preferred terminal selection in settings.",
+      "Fixed terminal launches so they open in the selected project directory.",
+      "Fixed VS Code launches so shell-defined launch commands and environment setup work reliably.",
+    ],
+  },
+  {
+    version: "0.2.0",
+    items: [
+      "Added configurable project root settings.",
+      "Added tray refresh and launch-on-login actions.",
+      "Added first-run tray guidance with a permanent dismiss option.",
+      "Improved repository metadata and open-source documentation.",
+    ],
+  },
+];
 
 const state = {
   projects: [] as Project[],
@@ -94,6 +131,7 @@ let searchInputEl: HTMLInputElement;
 let projectGridEl: HTMLElement;
 let projectCountEl: HTMLElement;
 let workspaceCountEl: HTMLElement;
+let appVersionEl: HTMLButtonElement;
 let statusEl: HTMLElement;
 let refreshButtonEl: HTMLButtonElement;
 let settingsButtonEl: HTMLButtonElement;
@@ -115,6 +153,10 @@ let commitBodyEl: HTMLElement;
 let trayHintModalEl: HTMLDialogElement;
 let trayHintCloseButtonEl: HTMLButtonElement;
 let trayHintDismissCheckboxEl: HTMLInputElement;
+let releaseNotesModalEl: HTMLDialogElement;
+let releaseNotesCloseButtonEl: HTMLButtonElement;
+let releaseNotesTitleEl: HTMLElement;
+let releaseNotesListEl: HTMLElement;
 let settingsModalEl: HTMLDialogElement;
 let settingsCloseButtonEl: HTMLButtonElement;
 let settingsFormEl: HTMLFormElement;
@@ -130,8 +172,48 @@ let themeSystemButtonEl: HTMLButtonElement;
 let systemThemeMediaQuery: MediaQueryList | null = null;
 
 async function initializeApp() {
+  void fetchAppVersion();
   await fetchSettings();
   await fetchProjects();
+}
+
+async function fetchAppVersion() {
+  setAppVersion(FALLBACK_APP_VERSION);
+
+  try {
+    setAppVersion(await getVersion());
+  } catch {
+    setAppVersion(FALLBACK_APP_VERSION);
+  }
+}
+
+function setAppVersion(version: string) {
+  appVersionEl.textContent = `Version ${version}`;
+}
+
+function renderReleaseNotes() {
+  releaseNotesListEl.innerHTML = "";
+
+  for (const entry of RELEASE_NOTES) {
+    const section = document.createElement("section");
+    section.className = "release-note-section";
+
+    const heading = document.createElement("h3");
+    heading.className = "release-note-version";
+    heading.textContent = `v${entry.version}`;
+
+    const list = document.createElement("ul");
+    list.className = "release-note-items";
+
+    for (const itemText of entry.items) {
+      const item = document.createElement("li");
+      item.textContent = itemText;
+      list.append(item);
+    }
+
+    section.append(heading, list);
+    releaseNotesListEl.append(section);
+  }
 }
 
 async function fetchSettings() {
@@ -325,9 +407,6 @@ function createProjectCard(project: Project) {
   const footer = document.createElement("div");
   footer.className = "project-footer";
 
-  const footerMeta = document.createElement("div");
-  footerMeta.className = "footer-meta";
-
   const modified = document.createElement("p");
   modified.className = "project-modified";
   modified.textContent = project.lastModifiedEpochMs
@@ -335,8 +414,6 @@ function createProjectCard(project: Project) {
     : "Modified time unavailable";
 
   detailsPanel.prepend(detailsHeader, detailValue);
-
-  footerMeta.append(modified);
 
   const actions = document.createElement("div");
   actions.className = "project-actions";
@@ -367,19 +444,7 @@ function createProjectCard(project: Project) {
     actions.append(createWorkspaceButton);
   }
 
-  const openTerminalButton = document.createElement("button");
-  openTerminalButton.type = "button";
-  openTerminalButton.className = "secondary-action";
-  openTerminalButton.append(createIcon("terminal", "button-icon"), "Open Terminal");
-  openTerminalButton.title = `Open ${project.name} in Terminal`;
-  openTerminalButton.setAttribute("aria-label", `Open ${project.name} in Terminal`);
-  openTerminalButton.dataset.baseDisabled = "false";
-  openTerminalButton.addEventListener("click", async () => {
-    await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
-  });
-  actions.append(openTerminalButton);
-
-  footer.append(footerMeta, actions);
+  footer.append(actions, modified);
   card.append(header, detailsPanel, footer);
   return card;
 }
@@ -818,6 +883,12 @@ function closeTrayHint() {
   trayHintModalEl.close();
 }
 
+function openReleaseNotes() {
+  releaseNotesTitleEl.textContent = `Project Dashboard ${appVersionEl.textContent?.replace(/^Version\s+/, "v") ?? "updates"}`;
+  document.body.classList.add("modal-open");
+  releaseNotesModalEl.showModal();
+}
+
 function openSettings() {
   if (!state.settings) {
     return;
@@ -881,6 +952,7 @@ window.addEventListener("DOMContentLoaded", () => {
   projectGridEl = document.querySelector("#project-grid") as HTMLElement;
   projectCountEl = document.querySelector("#project-count") as HTMLElement;
   workspaceCountEl = document.querySelector("#workspace-count") as HTMLElement;
+  appVersionEl = document.querySelector("#app-version") as HTMLButtonElement;
   statusEl = document.querySelector("#status-message") as HTMLElement;
   refreshButtonEl = document.querySelector("#refresh-button") as HTMLButtonElement;
   settingsButtonEl = document.querySelector("#settings-button") as HTMLButtonElement;
@@ -902,6 +974,10 @@ window.addEventListener("DOMContentLoaded", () => {
   trayHintModalEl = document.querySelector("#tray-hint-modal") as HTMLDialogElement;
   trayHintCloseButtonEl = document.querySelector("#tray-hint-close") as HTMLButtonElement;
   trayHintDismissCheckboxEl = document.querySelector("#tray-hint-dismiss") as HTMLInputElement;
+  releaseNotesModalEl = document.querySelector("#release-notes-modal") as HTMLDialogElement;
+  releaseNotesCloseButtonEl = document.querySelector("#release-notes-close") as HTMLButtonElement;
+  releaseNotesTitleEl = document.querySelector("#release-notes-title") as HTMLElement;
+  releaseNotesListEl = document.querySelector("#release-notes-list") as HTMLElement;
   settingsModalEl = document.querySelector("#settings-modal") as HTMLDialogElement;
   settingsCloseButtonEl = document.querySelector("#settings-close") as HTMLButtonElement;
   settingsFormEl = document.querySelector("#settings-form") as HTMLFormElement;
@@ -926,6 +1002,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   settingsButtonEl.addEventListener("click", () => {
     openSettings();
+  });
+
+  appVersionEl.addEventListener("click", () => {
+    openReleaseNotes();
   });
 
   settingsCloseButtonEl.addEventListener("click", () => {
@@ -1006,6 +1086,14 @@ window.addEventListener("DOMContentLoaded", () => {
     closeTrayHint();
   });
 
+  releaseNotesCloseButtonEl.addEventListener("click", () => {
+    releaseNotesModalEl.close();
+  });
+
+  releaseNotesModalEl.addEventListener("close", () => {
+    document.body.classList.remove("modal-open");
+  });
+
   void listen("tray://refresh-projects", async () => {
     await fetchProjects();
   });
@@ -1016,6 +1104,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
+  renderReleaseNotes();
   syncSystemThemeListener();
   applyThemeMode();
   void initializeApp();

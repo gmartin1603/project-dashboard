@@ -12,7 +12,10 @@
     <main class="app-shell">
       <header class="topbar-panel">
         <div class="topbar-copy">
-          <p class="eyebrow">Project Dashboard</p>
+          <div class="topbar-heading">
+            <p class="eyebrow">Project Dashboard</p>
+            <button id="app-version" class="version-badge" type="button" aria-label="Open release notes">Version 0.2.3</button>
+          </div>
           <h1>Launch your local projects fast.</h1>
           <p class="hero-copy">
             A tighter launcher for your local project folders.
@@ -183,6 +186,18 @@
             </label>
           </section>
         </form>
+      </dialog>
+
+      <dialog class="release-notes-modal" id="release-notes-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Release Notes</p>
+            <h2 id="release-notes-title">Project Dashboard updates</h2>
+            <p class="history-overview">See what changed in recent versions.</p>
+          </div>
+          <button id="release-notes-close" class="icon-button" type="button" aria-label="Close release notes">Close</button>
+        </div>
+        <div class="release-notes-list" id="release-notes-list"></div>
       </dialog>
     </main>
   </body>

@@ -134,6 +134,13 @@ body.modal-open {
   align-items: start;
 }
 
+.topbar-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .eyebrow,
 .empty-eyebrow,
 .section-label,
@@ -174,6 +181,36 @@ h2 {
 .empty-state p {
   margin: 0;
   color: var(--muted);
+}
+
+.version-badge {
+  margin: 0;
+  padding: 0.24rem 0.62rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.version-badge:hover {
+  background: var(--panel-strong);
+  border-color: var(--button-hover-border);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.version-badge:focus-visible {
+  outline: 2px solid var(--focus-outline);
+  outline-offset: 2px;
 }
 
 .hero-copy {
@@ -529,23 +566,18 @@ button:disabled {
 }
 
 .project-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
   gap: 12px;
-}
-
-.footer-meta {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
 }
 
 .project-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.project-modified {
+  min-width: 0;
 }
 
 .project-actions button {
@@ -774,6 +806,51 @@ button:disabled {
   background: var(--modal-backdrop);
 }
 
+.release-notes-modal {
+  width: min(680px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--modal-shadow);
+}
+
+.release-notes-modal::backdrop {
+  background: var(--modal-backdrop);
+}
+
+.release-notes-list {
+  display: grid;
+  gap: 12px;
+  padding: 0 18px 18px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.release-note-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-muted);
+}
+
+.release-note-version,
+.release-note-items {
+  margin: 0;
+}
+
+.release-note-items {
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
+.release-note-items li + li {
+  margin-top: 0.42rem;
+}
+
 .settings-form {
   display: grid;
   gap: 12px;
@@ -910,10 +987,6 @@ button:disabled {
   }
 
   .theme-toggle {
-    width: 100%;
-  }
-
-  .footer-meta {
     width: 100%;
   }
 
