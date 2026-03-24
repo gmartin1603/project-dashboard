@@ -81,6 +81,14 @@ type ReleaseNoteEntry = {
 
 const RELEASE_NOTES: ReleaseNoteEntry[] = [
   {
+    version: "0.3.0",
+    items: [
+      "Added three tray icon designs with a settings picker for switching between them.",
+      "Applied the selected icon across the tray, menu, toolbar, and app header.",
+      "Updated the packaged desktop app icons to use the new grid mark by default.",
+    ],
+  },
+  {
     version: "0.2.3",
     items: [
       "Made the app version visible in the dashboard header.",
