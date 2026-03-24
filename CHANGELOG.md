@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- added three tray icon designs with a settings picker
+- applied the selected icon across the tray, menu, toolbar, and app header
+- updated packaged desktop app icons to use the new grid mark by default
+
 ## 0.2.3
 
 - made the app version visible in the main dashboard header
