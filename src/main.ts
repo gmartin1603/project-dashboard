@@ -18,6 +18,7 @@ type AppSettings = {
   projectRoot: string;
   defaultProjectRoot: string;
   preferredTerminal: string;
+  trayIcon: TrayIconName;
 };
 
 type GitCommitEntry = {
@@ -51,6 +52,7 @@ type GitCommitDetails = {
 
 type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal";
+type TrayIconName = "grid" | "orbit" | "stacks";
 type TechIconName =
   | "node"
   | "bun"
@@ -71,6 +73,31 @@ const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
 const THEME_STORAGE_KEY = "project-dashboard-theme";
 const FALLBACK_APP_VERSION = packageJson.version;
+const TRAY_ICON_OPTIONS = [
+  {
+    name: "grid",
+    label: "Grid",
+    description: "Balanced dashboard tiles.",
+    previewHref: new URL("./assets/tray-grid.svg", import.meta.url).href,
+  },
+  {
+    name: "orbit",
+    label: "Orbit",
+    description: "Circular motion around a hub.",
+    previewHref: new URL("./assets/tray-orbit.svg", import.meta.url).href,
+  },
+  {
+    name: "stacks",
+    label: "Stacks",
+    description: "Layered project lines.",
+    previewHref: new URL("./assets/tray-stacks.svg", import.meta.url).href,
+  },
+] as const satisfies ReadonlyArray<{
+  name: TrayIconName;
+  label: string;
+  description: string;
+  previewHref: string;
+}>;
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -132,9 +159,11 @@ let projectGridEl: HTMLElement;
 let projectCountEl: HTMLElement;
 let workspaceCountEl: HTMLElement;
 let appVersionEl: HTMLButtonElement;
+let appBrandIconEl: HTMLElement;
 let statusEl: HTMLElement;
 let refreshButtonEl: HTMLButtonElement;
 let settingsButtonEl: HTMLButtonElement;
+let toolbarAppIconEl: HTMLElement;
 let projectRootDisplayEl: HTMLElement;
 let viewDetailedButtonEl: HTMLButtonElement;
 let viewCompactButtonEl: HTMLButtonElement;
@@ -164,6 +193,7 @@ let projectRootInputEl: HTMLInputElement;
 let projectRootBrowseEl: HTMLButtonElement;
 let projectRootDefaultEl: HTMLElement;
 let preferredTerminalSelectEl: HTMLSelectElement;
+let trayIconOptionsEl: HTMLElement;
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
 let themeLightButtonEl: HTMLButtonElement;
@@ -234,6 +264,76 @@ function syncSettingsUi() {
   projectRootInputEl.value = state.settings.projectRoot;
   projectRootDefaultEl.textContent = `Default root: ${state.settings.defaultProjectRoot}`;
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
+  syncTrayIconToggle();
+}
+
+function renderTrayIconOptions() {
+  trayIconOptionsEl.innerHTML = "";
+
+  for (const option of TRAY_ICON_OPTIONS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tray-icon-option";
+    button.dataset.trayIcon = option.name;
+
+    const preview = document.createElement("img");
+    preview.className = "tray-icon-preview";
+    preview.src = option.previewHref;
+    preview.alt = `${option.label} tray icon preview`;
+
+    const content = document.createElement("span");
+    content.className = "tray-icon-copy";
+
+    const title = document.createElement("span");
+    title.className = "tray-icon-title";
+    title.textContent = option.label;
+
+    const description = document.createElement("span");
+    description.className = "tray-icon-description";
+    description.textContent = option.description;
+
+    content.append(title, description);
+    button.append(preview, content);
+    button.addEventListener("click", async () => {
+      await saveTrayIcon(option.name);
+    });
+    trayIconOptionsEl.append(button);
+  }
+
+  syncTrayIconToggle();
+}
+
+function renderAppBrandIcons() {
+  const trayIconOption = TRAY_ICON_OPTIONS.find((option) => option.name === (state.settings?.trayIcon ?? "grid")) ?? TRAY_ICON_OPTIONS[0];
+
+  appBrandIconEl.innerHTML = "";
+  toolbarAppIconEl.innerHTML = "";
+
+  const headerPreview = document.createElement("img");
+  headerPreview.src = trayIconOption.previewHref;
+  headerPreview.alt = "";
+  headerPreview.className = "app-brand-icon-image";
+
+  const toolbarPreview = document.createElement("img");
+  toolbarPreview.src = trayIconOption.previewHref;
+  toolbarPreview.alt = "";
+  toolbarPreview.className = "toolbar-app-icon-image";
+
+  appBrandIconEl.append(headerPreview);
+  toolbarAppIconEl.append(toolbarPreview);
+}
+
+function syncTrayIconToggle() {
+  const selectedTrayIcon = state.settings?.trayIcon ?? "grid";
+  const buttons = trayIconOptionsEl.querySelectorAll<HTMLButtonElement>(".tray-icon-option");
+
+  for (const button of buttons) {
+    const isActive = button.dataset.trayIcon === selectedTrayIcon;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+
+  renderAppBrandIcons();
 }
 
 async function fetchProjects() {
@@ -925,6 +1025,18 @@ async function savePreferredTerminal(preferredTerminal: string) {
   }
 }
 
+async function saveTrayIcon(trayIcon: TrayIconName) {
+  setSettingsStatus("Saving tray icon...");
+
+  try {
+    state.settings = await invoke<AppSettings>("update_tray_icon", { trayIcon });
+    syncSettingsUi();
+    setSettingsStatus("Tray icon updated.");
+  } catch (error) {
+    setSettingsStatus(String(error), true);
+  }
+}
+
 async function browseProjectRoot() {
   const defaultPath = projectRootInputEl.value.trim() || state.settings?.projectRoot || state.settings?.defaultProjectRoot;
 
@@ -953,9 +1065,11 @@ window.addEventListener("DOMContentLoaded", () => {
   projectCountEl = document.querySelector("#project-count") as HTMLElement;
   workspaceCountEl = document.querySelector("#workspace-count") as HTMLElement;
   appVersionEl = document.querySelector("#app-version") as HTMLButtonElement;
+  appBrandIconEl = document.querySelector("#app-brand-icon") as HTMLElement;
   statusEl = document.querySelector("#status-message") as HTMLElement;
   refreshButtonEl = document.querySelector("#refresh-button") as HTMLButtonElement;
   settingsButtonEl = document.querySelector("#settings-button") as HTMLButtonElement;
+  toolbarAppIconEl = document.querySelector("#toolbar-app-icon") as HTMLElement;
   projectRootDisplayEl = document.querySelector("#project-root-display") as HTMLElement;
   viewDetailedButtonEl = document.querySelector("#view-detailed") as HTMLButtonElement;
   viewCompactButtonEl = document.querySelector("#view-compact") as HTMLButtonElement;
@@ -985,11 +1099,15 @@ window.addEventListener("DOMContentLoaded", () => {
   projectRootBrowseEl = document.querySelector("#project-root-browse") as HTMLButtonElement;
   projectRootDefaultEl = document.querySelector("#project-root-default") as HTMLElement;
   preferredTerminalSelectEl = document.querySelector("#preferred-terminal-select") as HTMLSelectElement;
+  trayIconOptionsEl = document.querySelector("#tray-icon-options") as HTMLElement;
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
   themeLightButtonEl = document.querySelector("#theme-light") as HTMLButtonElement;
   themeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
   themeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
+
+  renderTrayIconOptions();
+  renderAppBrandIcons();
 
   searchInputEl.addEventListener("input", (event) => {
     state.query = (event.target as HTMLInputElement).value;

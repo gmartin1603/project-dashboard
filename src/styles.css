@@ -141,6 +141,25 @@ body.modal-open {
   flex-wrap: wrap;
 }
 
+.app-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+}
+
+.app-brand-icon-image,
+.toolbar-app-icon-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .eyebrow,
 .empty-eyebrow,
 .section-label,
@@ -264,7 +283,18 @@ code {
 }
 
 #settings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-width: 96px;
+}
+
+.toolbar-app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
 }
 
 .view-toggle {
@@ -906,6 +936,56 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.tray-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tray-icon-option {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-strong);
+  color: var(--text);
+  text-align: left;
+  box-shadow: none;
+}
+
+.tray-icon-option:hover:not(:disabled) {
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+}
+
+.tray-icon-option.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tray-icon-preview {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.tray-icon-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.tray-icon-title {
+  font-weight: 700;
+}
+
+.tray-icon-description {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .settings-section select {
   min-height: 42px;
   border-radius: 12px;
@@ -988,6 +1068,10 @@ button:disabled {
 
   .theme-toggle {
     width: 100%;
+  }
+
+  .tray-icon-grid {
+    grid-template-columns: 1fr;
   }
 
   .project-actions button {
