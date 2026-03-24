@@ -6,7 +6,8 @@ use std::{
     time::UNIX_EPOCH,
 };
 use tauri::{
-    menu::{CheckMenuItem, Menu, MenuItem},
+    image::Image,
+    menu::{CheckMenuItem, IconMenuItem, Menu, MenuItem, MenuItemKind},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WindowEvent,
 };
@@ -16,6 +17,8 @@ const DESKTOP_ENTRY_NAME: &str = "project-dashboard.desktop";
 const SETTINGS_DIR_NAME: &str = "project-dashboard";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 const EVENT_REFRESH_PROJECTS: &str = "tray://refresh-projects";
+const APP_MENU_ID: &str = "app-menu";
+const APP_MENU_SHOW_ID: &str = "show";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,6 +26,7 @@ struct AppSettingsResponse {
     project_root: String,
     default_project_root: String,
     preferred_terminal: String,
+    tray_icon: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -30,7 +34,12 @@ struct StoredSettings {
     project_root: String,
     #[serde(default = "default_preferred_terminal")]
     preferred_terminal: String,
+    #[serde(default = "default_tray_icon")]
+    tray_icon: String,
 }
+
+const TRAY_ICON_ID: &str = "project-dashboard-tray";
+const TRAY_ICON_SIZE: u32 = 64;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -107,6 +116,10 @@ fn default_preferred_terminal() -> String {
     "auto".to_string()
 }
 
+fn default_tray_icon() -> String {
+    "grid".to_string()
+}
+
 fn supported_terminals() -> &'static [&'static str] {
     &[
         "auto",
@@ -124,6 +137,10 @@ fn supported_terminals() -> &'static [&'static str] {
     ]
 }
 
+fn supported_tray_icons() -> &'static [&'static str] {
+    &["grid", "orbit", "stacks"]
+}
+
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
     let normalized = value.trim().to_lowercase();
 
@@ -132,6 +149,61 @@ fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
     } else {
         Err(format!("Unsupported terminal preference: {value}"))
     }
+}
+
+fn normalize_tray_icon(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
+
+    if supported_tray_icons().contains(&normalized.as_str()) {
+        Ok(normalized)
+    } else {
+        Err(format!("Unsupported tray icon: {value}"))
+    }
+}
+
+fn tray_icon_image(icon_name: &str) -> Image<'static> {
+    let bytes: &'static [u8] = match icon_name {
+        "orbit" => include_bytes!("../icons/tray/tray-orbit.rgba"),
+        "stacks" => include_bytes!("../icons/tray/tray-stacks.rgba"),
+        _ => include_bytes!("../icons/tray/tray-grid.rgba"),
+    };
+
+    Image::new(bytes, TRAY_ICON_SIZE, TRAY_ICON_SIZE).to_owned()
+}
+
+fn current_tray_icon_image() -> Image<'static> {
+    let tray_icon = load_settings()
+        .map(|settings| settings.tray_icon)
+        .unwrap_or_else(|_| default_tray_icon());
+    tray_icon_image(&tray_icon)
+}
+
+fn sync_app_menu_icon(app: &AppHandle) -> Result<(), String> {
+    let Some(menu) = app.menu() else {
+        return Ok(());
+    };
+
+    let Some(item) = menu.get(APP_MENU_SHOW_ID) else {
+        return Ok(());
+    };
+
+    let MenuItemKind::Icon(icon_item) = item else {
+        return Ok(());
+    };
+
+    icon_item
+        .set_icon(Some(current_tray_icon_image()))
+        .map_err(|error| format!("Could not update menu icon: {error}"))
+}
+
+fn sync_main_window_icon(app: &AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+
+    window
+        .set_icon(current_tray_icon_image())
+        .map_err(|error| format!("Could not update window icon: {error}"))
 }
 
 fn shell_command(
@@ -202,6 +274,7 @@ fn load_settings() -> Result<StoredSettings, String> {
         return Ok(StoredSettings {
             project_root: default_root,
             preferred_terminal: default_preferred_terminal(),
+            tray_icon: default_tray_icon(),
         });
     }
 
@@ -215,12 +288,16 @@ fn load_settings() -> Result<StoredSettings, String> {
             project_root: default_root,
             preferred_terminal: normalize_preferred_terminal(&settings.preferred_terminal)
                 .unwrap_or_else(|_| default_preferred_terminal()),
+            tray_icon: normalize_tray_icon(&settings.tray_icon)
+                .unwrap_or_else(|_| default_tray_icon()),
         })
     } else {
         Ok(StoredSettings {
             project_root: settings.project_root,
             preferred_terminal: normalize_preferred_terminal(&settings.preferred_terminal)
                 .unwrap_or_else(|_| default_preferred_terminal()),
+            tray_icon: normalize_tray_icon(&settings.tray_icon)
+                .unwrap_or_else(|_| default_tray_icon()),
         })
     }
 }
@@ -268,6 +345,7 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
         project_root: settings.project_root,
         default_project_root: default_project_root().to_string_lossy().into_owned(),
         preferred_terminal: settings.preferred_terminal,
+        tray_icon: settings.tray_icon,
     })
 }
 
@@ -307,6 +385,23 @@ fn update_preferred_terminal(preferred_terminal: String) -> Result<AppSettingsRe
     let mut settings = load_settings()?;
     settings.preferred_terminal = normalize_preferred_terminal(&preferred_terminal)?;
     save_settings(&settings)?;
+
+    app_settings_response()
+}
+
+#[tauri::command]
+fn update_tray_icon(app: AppHandle, tray_icon: String) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings()?;
+    settings.tray_icon = normalize_tray_icon(&tray_icon)?;
+    save_settings(&settings)?;
+
+    if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
+        tray.set_icon(Some(tray_icon_image(&settings.tray_icon)))
+            .map_err(|error| format!("Could not update tray icon: {error}"))?;
+    }
+
+    sync_app_menu_icon(&app)?;
+    sync_main_window_icon(&app)?;
 
     app_settings_response()
 }
@@ -895,7 +990,14 @@ fn sync_launch_on_login_item<R: tauri::Runtime>(item: &CheckMenuItem<R>) {
 }
 
 fn build_tray(app: &AppHandle) -> tauri::Result<TrayIcon> {
-    let show_item = MenuItem::with_id(app, "show", "Show Project Dashboard", true, None::<&str>)?;
+    let show_item = IconMenuItem::with_id(
+        app,
+        APP_MENU_SHOW_ID,
+        "Show Project Dashboard",
+        true,
+        Some(current_tray_icon_image()),
+        None::<&str>,
+    )?;
     let refresh_item = MenuItem::with_id(app, "refresh", "Refresh Projects", true, None::<&str>)?;
     let launch_on_login_item = CheckMenuItem::with_id(
         app,
@@ -907,14 +1009,14 @@ fn build_tray(app: &AppHandle) -> tauri::Result<TrayIcon> {
     )?;
     let launch_on_login_item_handle = launch_on_login_item.clone();
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(
+    let menu = Menu::with_id_and_items(
         app,
+        APP_MENU_ID,
         &[&show_item, &refresh_item, &launch_on_login_item, &quit_item],
     )?;
-    let icon = app.default_window_icon().cloned();
-
-    let mut tray_builder = TrayIconBuilder::with_id("project-dashboard-tray")
+    let tray_builder = TrayIconBuilder::with_id(TRAY_ICON_ID)
         .menu(&menu)
+        .icon(current_tray_icon_image())
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "show" => show_main_window(app),
@@ -941,10 +1043,6 @@ fn build_tray(app: &AppHandle) -> tauri::Result<TrayIcon> {
             }
         });
 
-    if let Some(icon) = icon {
-        tray_builder = tray_builder.icon(icon);
-    }
-
     tray_builder.build(app)
 }
 
@@ -953,8 +1051,24 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .menu(|app| {
+            Menu::with_id_and_items(
+                app,
+                APP_MENU_ID,
+                &[&IconMenuItem::with_id(
+                    app,
+                    APP_MENU_SHOW_ID,
+                    "Show Project Dashboard",
+                    true,
+                    Some(current_tray_icon_image()),
+                    None::<&str>,
+                )?],
+            )
+        })
         .setup(|app| {
             let _tray = build_tray(app.handle())?;
+            let _ = sync_app_menu_icon(app.handle());
+            let _ = sync_main_window_icon(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -967,6 +1081,7 @@ pub fn run() {
             get_app_settings,
             update_project_root,
             update_preferred_terminal,
+            update_tray_icon,
             list_projects,
             open_in_code,
             open_in_terminal,
