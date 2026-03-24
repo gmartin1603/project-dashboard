@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     time::UNIX_EPOCH,
 };
 use tauri::{
@@ -156,6 +156,9 @@ fn shell_command(
     }
 
     command.arg("project-dashboard");
+    command.stdin(Stdio::null());
+    command.stdout(Stdio::null());
+    command.stderr(Stdio::null());
 
     if let Some(arg) = shell_arg {
         command.arg(arg);
@@ -165,13 +168,9 @@ fn shell_command(
         command.current_dir(directory);
     }
 
-    let status = command
-        .status()
+    command
+        .spawn()
         .map_err(|error| format!("Could not launch command: {error}"))?;
-
-    if !status.success() {
-        return Err(format!("Command exited with status {status}"));
-    }
 
     Ok(())
 }
