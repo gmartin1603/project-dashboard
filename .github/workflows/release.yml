@@ -28,12 +28,26 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Ensure release tag does not already exist
+      - name: Validate release tag state
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
-            echo "Release tag ${{ steps.version.outputs.tag }} already exists." >&2
+          TAG="${{ steps.version.outputs.tag }}"
+          TAG_OBJECT_SHA=$(git ls-remote --refs origin "refs/tags/$TAG" | cut -f1)
+
+          if [ -z "$TAG_OBJECT_SHA" ]; then
+            exit 0
+          fi
+
+          TAG_COMMIT_SHA=$(git ls-remote --refs origin "refs/tags/$TAG^{}" | cut -f1)
+          if [ -z "$TAG_COMMIT_SHA" ]; then
+            TAG_COMMIT_SHA="$TAG_OBJECT_SHA"
+          fi
+
+          if [ "$TAG_COMMIT_SHA" != "$GITHUB_SHA" ]; then
+            echo "Release tag $TAG already exists at $TAG_COMMIT_SHA, but this workflow is building $GITHUB_SHA." >&2
             exit 1
           fi
+
+          echo "Release tag $TAG already points to this commit; continuing."
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

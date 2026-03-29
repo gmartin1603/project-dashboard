@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - release
   push:
     branches:
       - main
@@ -79,3 +80,69 @@ jobs:
       - name: Check Rust backend
         run: cargo check
         working-directory: src-tauri
+
+  release-readiness:
+    name: Release Readiness
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Determine release version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure release tag is available
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release tag ${{ steps.version.outputs.tag }} already exists on origin." >&2
+            exit 1
+          fi
+
+      - name: Verify release version consistency
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          test "$(node -p "require('./package.json').version")" = "$VERSION"
+          test "$(node -p "require('./package-lock.json').version")" = "$VERSION"
+          test "$(node -p "require('./src-tauri/tauri.conf.json').version")" = "$VERSION"
+          grep -q "^version = \"$VERSION\"$" src-tauri/Cargo.toml
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            file \
+            libayatana-appindicator3-dev \
+            libglib2.0-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            pkg-config
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build release package
+        run: npm run tauri build
