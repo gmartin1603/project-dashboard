@@ -1,6 +1,6 @@
 {
   "name": "project-dashboard",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "A local-first Tauri desktop launcher for development projects and VS Code workspaces.",
   "license": "MIT",
   "type": "module",
