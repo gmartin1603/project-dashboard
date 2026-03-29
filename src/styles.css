@@ -40,6 +40,7 @@
   --git-text: #36506b;
   --error: #8a342b;
   --primary-button-text: #f6fbf8;
+  --native-color-scheme: light;
 }
 
 :root[data-theme="dark"] {
@@ -75,6 +76,7 @@
   --git-text: #9ac7f0;
   --error: #f0978a;
   --primary-button-text: #0b1110;
+  --native-color-scheme: dark;
 }
 
 * {
@@ -634,6 +636,16 @@ button:disabled {
   background: var(--accent-strong);
 }
 
+.project-actions .folder-primary-action {
+  background: var(--folder-soft);
+  color: var(--folder-text);
+}
+
+.project-actions .folder-primary-action:hover:not(:disabled) {
+  background: var(--folder-soft);
+  border-color: var(--folder-text);
+}
+
 .empty-state {
   min-height: 220px;
   display: grid;
@@ -698,6 +710,13 @@ button:disabled {
   border: 1px solid var(--border-strong);
   padding: 0.72rem 0.9rem;
   font: inherit;
+  color: var(--text);
+  background: var(--panel-strong);
+  color-scheme: var(--native-color-scheme);
+}
+
+.branch-picker select option,
+.branch-picker select optgroup {
   color: var(--text);
   background: var(--panel-strong);
 }

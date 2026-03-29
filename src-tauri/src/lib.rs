@@ -138,7 +138,7 @@ fn supported_terminals() -> &'static [&'static str] {
 }
 
 fn supported_tray_icons() -> &'static [&'static str] {
-    &["grid", "orbit", "stacks"]
+    &["grid", "orbit", "stacks", "buildtime"]
 }
 
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
@@ -163,6 +163,7 @@ fn normalize_tray_icon(value: &str) -> Result<String, String> {
 
 fn tray_icon_image(icon_name: &str) -> Image<'static> {
     let bytes: &'static [u8] = match icon_name {
+        "buildtime" => include_bytes!("../icons/tray/tray-buildtime.rgba"),
         "orbit" => include_bytes!("../icons/tray/tray-orbit.rgba"),
         "stacks" => include_bytes!("../icons/tray/tray-stacks.rgba"),
         _ => include_bytes!("../icons/tray/tray-grid.rgba"),

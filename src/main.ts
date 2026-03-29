@@ -52,7 +52,7 @@ type GitCommitDetails = {
 
 type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal";
-type TrayIconName = "grid" | "orbit" | "stacks";
+type TrayIconName = "grid" | "orbit" | "stacks" | "buildtime";
 type TechIconName =
   | "node"
   | "bun"
@@ -92,6 +92,12 @@ const TRAY_ICON_OPTIONS = [
     description: "Layered project lines.",
     previewHref: new URL("./assets/tray-stacks.svg", import.meta.url).href,
   },
+  {
+    name: "buildtime",
+    label: "Build Time",
+    description: "Project progress paced by a delivery clock.",
+    previewHref: new URL("./assets/tray-buildtime.svg", import.meta.url).href,
+  },
 ] as const satisfies ReadonlyArray<{
   name: TrayIconName;
   label: string;
@@ -111,8 +117,9 @@ const RELEASE_NOTES: ReleaseNoteEntry[] = [
     version: "0.3.0",
     items: [
       "Added three tray icon designs with a settings picker for switching between them.",
+      "Added a Build Time icon option for progress-focused branding.",
       "Applied the selected icon across the tray, menu, toolbar, and app header.",
-      "Updated the packaged desktop app icons to use the new grid mark by default.",
+      "Updated the packaged desktop app icons to use the Build Time mark by default.",
     ],
   },
   {
@@ -539,17 +546,17 @@ function createProjectCard(project: Project) {
     });
     actions.append(openWorkspaceButton);
   } else {
-    const createWorkspaceButton = document.createElement("button");
-    createWorkspaceButton.type = "button";
-    createWorkspaceButton.className = "primary-action";
-    createWorkspaceButton.append(createIcon("workspace", "button-icon"), "Create Workspace");
-    createWorkspaceButton.title = `Create a default workspace for ${project.name}`;
-    createWorkspaceButton.setAttribute("aria-label", `Create a default workspace for ${project.name}`);
-    createWorkspaceButton.dataset.baseDisabled = "false";
-    createWorkspaceButton.addEventListener("click", async () => {
-      await createDefaultWorkspace(project);
+    const openFolderButton = document.createElement("button");
+    openFolderButton.type = "button";
+    openFolderButton.className = "primary-action folder-primary-action";
+    openFolderButton.append(createIcon("folder", "button-icon"), "Open Folder");
+    openFolderButton.title = `Open ${project.name} folder in VS Code`;
+    openFolderButton.setAttribute("aria-label", `Open ${project.name} folder in VS Code`);
+    openFolderButton.dataset.baseDisabled = "false";
+    openFolderButton.addEventListener("click", async () => {
+      await openInCode(project.path, `Opened ${project.name} in VS Code.`);
     });
-    actions.append(createWorkspaceButton);
+    actions.append(openFolderButton);
   }
 
   footer.append(actions, modified);
