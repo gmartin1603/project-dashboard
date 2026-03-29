@@ -51,7 +51,6 @@ type GitCommitDetails = {
 
 type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal";
-type TrayIconName = "grid" | "orbit" | "stacks" | "buildtime";
 type TechIconName =
   | "node"
   | "bun"
@@ -73,38 +72,6 @@ const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
 const COLOR_SCHEME_STORAGE_KEY = "project-dashboard-theme";
 const APP_THEME_STORAGE_KEY = "project-dashboard-app-theme";
 const FALLBACK_APP_VERSION = packageJson.version;
-const TRAY_ICON_OPTIONS = [
-  {
-    name: "grid",
-    label: "Grid",
-    description: "Balanced dashboard tiles.",
-    previewHref: new URL("./assets/tray-grid.svg", import.meta.url).href,
-  },
-  {
-    name: "orbit",
-    label: "Orbit",
-    description: "Circular motion around a hub.",
-    previewHref: new URL("./assets/tray-orbit.svg", import.meta.url).href,
-  },
-  {
-    name: "stacks",
-    label: "Stacks",
-    description: "Layered project lines.",
-    previewHref: new URL("./assets/tray-stacks.svg", import.meta.url).href,
-  },
-  {
-    name: "buildtime",
-    label: "Build Time",
-    description: "Project progress paced by a delivery clock.",
-    previewHref: new URL("./assets/tray-buildtime.svg", import.meta.url).href,
-  },
-] as const satisfies ReadonlyArray<{
-  name: TrayIconName;
-  label: string;
-  description: string;
-  previewHref: string;
-}>;
-
 const APP_THEME_OPTIONS = [
   { name: "default", label: "Default" },
   { name: "neon", label: "Neon" },
@@ -226,6 +193,44 @@ let colorSchemeLightButtonEl: HTMLButtonElement;
 let colorSchemeDarkButtonEl: HTMLButtonElement;
 let colorSchemeSystemButtonEl: HTMLButtonElement;
 let systemThemeMediaQuery: MediaQueryList | null = null;
+
+function renderAppBrandIcons() {
+  const targets = ["#app-brand-icon", "#toolbar-app-icon"];
+
+  for (const selector of targets) {
+    const target = document.querySelector(selector);
+
+    if (!target) {
+      continue;
+    }
+
+    target.replaceChildren(createAppBrandIcon());
+  }
+}
+
+function createAppBrandIcon() {
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("class", "icon");
+
+  const shapes = [
+    { tag: "rect", attributes: { x: "4", y: "4", width: "7", height: "7", rx: "1.8", fill: "currentColor", opacity: "0.95" } },
+    { tag: "rect", attributes: { x: "13", y: "4", width: "7", height: "7", rx: "1.8", fill: "currentColor", opacity: "0.65" } },
+    { tag: "rect", attributes: { x: "4", y: "13", width: "7", height: "7", rx: "1.8", fill: "currentColor", opacity: "0.65" } },
+    { tag: "rect", attributes: { x: "13", y: "13", width: "7", height: "7", rx: "1.8", fill: "currentColor", opacity: "0.95" } },
+  ];
+
+  for (const shape of shapes) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", shape.tag);
+    for (const [key, value] of Object.entries(shape.attributes)) {
+      element.setAttribute(key, value);
+    }
+    icon.append(element);
+  }
+
+  return icon;
+}
 
 async function initializeApp() {
   void fetchAppVersion();
@@ -1080,7 +1085,6 @@ window.addEventListener("DOMContentLoaded", () => {
   colorSchemeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
   colorSchemeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
 
-  renderTrayIconOptions();
   renderAppBrandIcons();
 
   searchInputEl.addEventListener("input", (event) => {

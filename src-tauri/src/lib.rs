@@ -124,10 +124,6 @@ fn supported_terminals() -> &'static [&'static str] {
     ]
 }
 
-fn supported_tray_icons() -> &'static [&'static str] {
-    &["grid", "orbit", "stacks", "buildtime"]
-}
-
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
     let normalized = value.trim().to_lowercase();
 
@@ -136,62 +132,6 @@ fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
     } else {
         Err(format!("Unsupported terminal preference: {value}"))
     }
-}
-
-fn normalize_tray_icon(value: &str) -> Result<String, String> {
-    let normalized = value.trim().to_lowercase();
-
-    if supported_tray_icons().contains(&normalized.as_str()) {
-        Ok(normalized)
-    } else {
-        Err(format!("Unsupported tray icon: {value}"))
-    }
-}
-
-fn tray_icon_image(icon_name: &str) -> Image<'static> {
-    let bytes: &'static [u8] = match icon_name {
-        "buildtime" => include_bytes!("../icons/tray/tray-buildtime.rgba"),
-        "orbit" => include_bytes!("../icons/tray/tray-orbit.rgba"),
-        "stacks" => include_bytes!("../icons/tray/tray-stacks.rgba"),
-        _ => include_bytes!("../icons/tray/tray-grid.rgba"),
-    };
-
-    Image::new(bytes, TRAY_ICON_SIZE, TRAY_ICON_SIZE).to_owned()
-}
-
-fn current_tray_icon_image() -> Image<'static> {
-    let tray_icon = load_settings()
-        .map(|settings| settings.tray_icon)
-        .unwrap_or_else(|_| default_tray_icon());
-    tray_icon_image(&tray_icon)
-}
-
-fn sync_app_menu_icon(app: &AppHandle) -> Result<(), String> {
-    let Some(menu) = app.menu() else {
-        return Ok(());
-    };
-
-    let Some(item) = menu.get(APP_MENU_SHOW_ID) else {
-        return Ok(());
-    };
-
-    let MenuItemKind::Icon(icon_item) = item else {
-        return Ok(());
-    };
-
-    icon_item
-        .set_icon(Some(current_tray_icon_image()))
-        .map_err(|error| format!("Could not update menu icon: {error}"))
-}
-
-fn sync_main_window_icon(app: &AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("main") else {
-        return Ok(());
-    };
-
-    window
-        .set_icon(current_tray_icon_image())
-        .map_err(|error| format!("Could not update window icon: {error}"))
 }
 
 fn shell_command(
