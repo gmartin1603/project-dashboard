@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/radical.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Dashboard</title>
     <script type="module" src="/src/main.ts" defer></script>
@@ -10,63 +11,72 @@
 
   <body>
     <main class="app-shell">
-      <header class="topbar-panel">
-        <div class="topbar-copy">
-          <div class="topbar-heading">
-            <p class="eyebrow">Project Dashboard</p>
-            <button id="app-version" class="version-badge" type="button" aria-label="Open release notes">Version 0.3.0</button>
+      <aside class="dashboard-sidebar">
+        <header class="topbar-panel">
+          <div class="topbar-copy">
+            <div class="topbar-heading">
+              <span class="app-brand-icon" id="app-brand-icon" aria-hidden="true"></span>
+              <p class="eyebrow">Project Dashboard</p>
+              <button id="app-version" class="version-badge" type="button" aria-label="Open release notes">Version 0.3.0</button>
+            </div>
+            <h1>Launch your local projects fast.</h1>
+            <p class="hero-copy">
+              A tighter launcher for your local project folders.
+              Search, scan, and reopen the exact project or workspace you want.
+            </p>
           </div>
-          <h1>Launch your local projects fast.</h1>
-          <p class="hero-copy">
-            A tighter launcher for your local project folders.
-            Search, scan, and reopen the exact project or workspace you want.
-          </p>
-        </div>
 
-        <div class="root-summary">
-          <p class="summary-label">Source Folder</p>
-          <code id="project-root-display">Loading...</code>
-          <p class="summary-note">
-            Workspace-backed projects stay near the top so your most prepared setups are
-            quickest to reopen.
-          </p>
-        </div>
-      </header>
-
-      <section class="toolbar-panel">
-        <label class="search-field" for="search-input">
-          <span>Find a project</span>
-          <input
-            id="search-input"
-            type="search"
-            placeholder="Filter by name, folder, or workspace"
-            autocomplete="off"
-          />
-        </label>
-
-        <div class="toolbar-actions">
-          <button id="settings-button" type="button">Settings</button>
-          <div class="view-toggle" role="group" aria-label="Card density">
-            <button id="view-detailed" class="toggle-button is-active" type="button">Detailed</button>
-            <button id="view-compact" class="toggle-button" type="button">Compact</button>
+          <div class="root-summary">
+            <p class="summary-label">Source Folder</p>
+            <code id="project-root-display">Loading...</code>
+            <p class="summary-note">
+              Workspace-backed projects stay near the top so your most prepared setups are
+              quickest to reopen.
+            </p>
           </div>
-          <div class="stats-strip">
-            <span id="project-count">0 visible</span>
-            <span id="workspace-count">0 with workspaces</span>
+        </header>
+
+        <section class="toolbar-panel">
+          <label class="search-field" for="search-input">
+            <span>Find a project</span>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Filter by name, folder, or workspace"
+              autocomplete="off"
+            />
+          </label>
+
+          <div class="toolbar-actions">
+            <button id="settings-button" type="button">
+              <span class="toolbar-app-icon" id="toolbar-app-icon" aria-hidden="true"></span>
+              <span class="toolbar-button-label">Settings</span>
+            </button>
+            <div class="view-toggle" role="group" aria-label="Card density">
+              <button id="view-detailed" class="toggle-button is-active" type="button">Detailed</button>
+              <button id="view-compact" class="toggle-button" type="button">Compact</button>
+            </div>
+            <div class="stats-strip">
+              <span id="project-count">0 visible</span>
+              <span id="workspace-count">0 with workspaces</span>
+            </div>
+            <button id="refresh-button" type="button">Refresh</button>
           </div>
-          <button id="refresh-button" type="button">Refresh</button>
-        </div>
+        </section>
+
+        <p class="status-message" id="status-message" data-state="default"></p>
+      </aside>
+
+      <section class="dashboard-main">
+        <section class="results-header">
+          <div>
+            <p class="section-label">Projects</p>
+            <h2>Ready To Launch</h2>
+          </div>
+          <p class="results-note">Minimal grid with workspace-first sorting.</p>
+        </section>
+        <section class="project-grid" id="project-grid" aria-live="polite"></section>
       </section>
-
-      <p class="status-message" id="status-message" data-state="default"></p>
-      <section class="results-header">
-        <div>
-          <p class="section-label">Projects</p>
-          <h2>Ready To Launch</h2>
-        </div>
-        <p class="results-note">Minimal grid with workspace-first sorting.</p>
-      </section>
-      <section class="project-grid" id="project-grid" aria-live="polite"></section>
 
       <dialog class="history-modal" id="history-modal">
         <div class="history-modal-header">
@@ -125,7 +135,7 @@
           <div>
             <p class="section-label">Settings</p>
             <h2>App Settings</h2>
-            <p class="history-overview">Choose your project folder and theme preference.</p>
+            <p class="history-overview">Choose your project folder, app theme, and color mode.</p>
           </div>
           <button id="settings-close" class="icon-button" type="button" aria-label="Close settings">Close</button>
         </div>
@@ -152,10 +162,21 @@
 
           <section class="settings-section">
             <div class="settings-section-header">
-              <p class="section-label">Appearance</p>
-              <p class="settings-help">Use a fixed theme or follow your system preference.</p>
+              <p class="section-label">App Theme</p>
+              <p class="settings-help">Pick the dashboard styling language independently from light or dark mode.</p>
             </div>
-            <div class="theme-toggle" role="group" aria-label="Theme preference">
+            <div class="theme-toggle app-theme-toggle" role="group" aria-label="App theme">
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="default">Default</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="neon">Neon</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="ember">Ember</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="fjord">Fjord</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="signal">Signal</button>
+            </div>
+            <div class="settings-section-header">
+              <p class="section-label">Color Mode</p>
+              <p class="settings-help">Use a fixed light or dark mode, or follow your system preference.</p>
+            </div>
+            <div class="theme-toggle" role="group" aria-label="Color mode">
               <button id="theme-light" class="toggle-button" type="button">Light</button>
               <button id="theme-dark" class="toggle-button" type="button">Dark</button>
               <button id="theme-system" class="toggle-button" type="button">System</button>

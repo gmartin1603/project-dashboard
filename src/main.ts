@@ -51,6 +51,7 @@ type GitCommitDetails = {
 
 type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal";
+type TrayIconName = "grid" | "orbit" | "stacks" | "buildtime";
 type TechIconName =
   | "node"
   | "bun"
@@ -69,10 +70,54 @@ type TechIconName =
 
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
-const THEME_STORAGE_KEY = "project-dashboard-theme";
+const COLOR_SCHEME_STORAGE_KEY = "project-dashboard-theme";
+const APP_THEME_STORAGE_KEY = "project-dashboard-app-theme";
 const FALLBACK_APP_VERSION = packageJson.version;
+const TRAY_ICON_OPTIONS = [
+  {
+    name: "grid",
+    label: "Grid",
+    description: "Balanced dashboard tiles.",
+    previewHref: new URL("./assets/tray-grid.svg", import.meta.url).href,
+  },
+  {
+    name: "orbit",
+    label: "Orbit",
+    description: "Circular motion around a hub.",
+    previewHref: new URL("./assets/tray-orbit.svg", import.meta.url).href,
+  },
+  {
+    name: "stacks",
+    label: "Stacks",
+    description: "Layered project lines.",
+    previewHref: new URL("./assets/tray-stacks.svg", import.meta.url).href,
+  },
+  {
+    name: "buildtime",
+    label: "Build Time",
+    description: "Project progress paced by a delivery clock.",
+    previewHref: new URL("./assets/tray-buildtime.svg", import.meta.url).href,
+  },
+] as const satisfies ReadonlyArray<{
+  name: TrayIconName;
+  label: string;
+  description: string;
+  previewHref: string;
+}>;
 
-type ThemeMode = "light" | "dark" | "system";
+const APP_THEME_OPTIONS = [
+  { name: "default", label: "Default" },
+  { name: "neon", label: "Neon" },
+  { name: "ember", label: "Ember" },
+  { name: "fjord", label: "Fjord" },
+  { name: "signal", label: "Signal" },
+] as const satisfies ReadonlyArray<{
+  name: string;
+  label: string;
+}>;
+
+type ColorSchemeMode = "light" | "dark" | "system";
+type AppTheme = (typeof APP_THEME_OPTIONS)[number]["name"];
 
 type ReleaseNoteEntry = {
   version: string;
@@ -84,8 +129,9 @@ const RELEASE_NOTES: ReleaseNoteEntry[] = [
     version: "0.3.0",
     items: [
       "Added three tray icon designs with a settings picker for switching between them.",
+      "Added a Build Time icon option for progress-focused branding.",
       "Applied the selected icon across the tray, menu, toolbar, and app header.",
-      "Updated the packaged desktop app icons to use the new grid mark by default.",
+      "Updated the packaged desktop app icons to use the Build Time mark by default.",
     ],
   },
   {
@@ -124,7 +170,8 @@ const state = {
   creatingWorkspacePath: "",
   terminalPath: "",
   viewMode: loadViewMode(),
-  themeMode: loadThemeMode(),
+  colorSchemeMode: loadColorSchemeMode(),
+  appTheme: loadAppTheme(),
   activeHistoryPath: "",
   activeHistoryBranch: "",
 };
@@ -174,9 +221,10 @@ let projectRootDefaultEl: HTMLElement;
 let preferredTerminalSelectEl: HTMLSelectElement;
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
-let themeLightButtonEl: HTMLButtonElement;
-let themeDarkButtonEl: HTMLButtonElement;
-let themeSystemButtonEl: HTMLButtonElement;
+let appThemeButtonEls: HTMLButtonElement[] = [];
+let colorSchemeLightButtonEl: HTMLButtonElement;
+let colorSchemeDarkButtonEl: HTMLButtonElement;
+let colorSchemeSystemButtonEl: HTMLButtonElement;
 let systemThemeMediaQuery: MediaQueryList | null = null;
 
 async function initializeApp() {
@@ -439,17 +487,17 @@ function createProjectCard(project: Project) {
     });
     actions.append(openWorkspaceButton);
   } else {
-    const createWorkspaceButton = document.createElement("button");
-    createWorkspaceButton.type = "button";
-    createWorkspaceButton.className = "primary-action";
-    createWorkspaceButton.append(createIcon("workspace", "button-icon"), "Create Workspace");
-    createWorkspaceButton.title = `Create a default workspace for ${project.name}`;
-    createWorkspaceButton.setAttribute("aria-label", `Create a default workspace for ${project.name}`);
-    createWorkspaceButton.dataset.baseDisabled = "false";
-    createWorkspaceButton.addEventListener("click", async () => {
-      await createDefaultWorkspace(project);
+    const openFolderButton = document.createElement("button");
+    openFolderButton.type = "button";
+    openFolderButton.className = "primary-action folder-primary-action";
+    openFolderButton.append(createIcon("folder", "button-icon"), "Open Folder");
+    openFolderButton.title = `Open ${project.name} folder in VS Code`;
+    openFolderButton.setAttribute("aria-label", `Open ${project.name} folder in VS Code`);
+    openFolderButton.dataset.baseDisabled = "false";
+    openFolderButton.addEventListener("click", async () => {
+      await openInCode(project.path, `Opened ${project.name} in VS Code.`);
     });
-    actions.append(createWorkspaceButton);
+    actions.append(openFolderButton);
   }
 
   footer.append(actions, modified);
@@ -753,8 +801,8 @@ function syncViewToggle() {
   viewCompactButtonEl.setAttribute("aria-pressed", String(!isDetailed));
 }
 
-function loadThemeMode(): ThemeMode {
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+function loadColorSchemeMode(): ColorSchemeMode {
+  const stored = window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "system") {
     return stored;
   }
@@ -762,43 +810,73 @@ function loadThemeMode(): ThemeMode {
   return "system";
 }
 
-function getResolvedThemeMode() {
-  if (state.themeMode === "system") {
+function loadAppTheme(): AppTheme {
+  const stored = window.localStorage.getItem(APP_THEME_STORAGE_KEY);
+  if (isAppTheme(stored)) {
+    return stored;
+  }
+
+  return "neon";
+}
+
+function isAppTheme(value: string | null): value is AppTheme {
+  return APP_THEME_OPTIONS.some((option) => option.name === value);
+}
+
+function getResolvedColorSchemeMode() {
+  if (state.colorSchemeMode === "system") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
-  return state.themeMode;
+  return state.colorSchemeMode;
 }
 
-function applyThemeMode() {
-  const resolvedThemeMode = getResolvedThemeMode();
-  document.documentElement.dataset.theme = resolvedThemeMode;
+function applyColorSchemeMode() {
+  const resolvedColorSchemeMode = getResolvedColorSchemeMode();
+  document.documentElement.dataset.theme = resolvedColorSchemeMode;
 
-  const isLight = state.themeMode === "light";
-  const isDark = state.themeMode === "dark";
-  const isSystem = state.themeMode === "system";
-  themeLightButtonEl.classList.toggle("is-active", isLight);
-  themeDarkButtonEl.classList.toggle("is-active", isDark);
-  themeSystemButtonEl.classList.toggle("is-active", isSystem);
-  themeLightButtonEl.setAttribute("aria-pressed", String(isLight));
-  themeDarkButtonEl.setAttribute("aria-pressed", String(isDark));
-  themeSystemButtonEl.setAttribute("aria-pressed", String(isSystem));
-  themeSystemButtonEl.textContent = `System (${resolvedThemeMode === "dark" ? "Dark" : "Light"})`;
+  const isLight = state.colorSchemeMode === "light";
+  const isDark = state.colorSchemeMode === "dark";
+  const isSystem = state.colorSchemeMode === "system";
+  colorSchemeLightButtonEl.classList.toggle("is-active", isLight);
+  colorSchemeDarkButtonEl.classList.toggle("is-active", isDark);
+  colorSchemeSystemButtonEl.classList.toggle("is-active", isSystem);
+  colorSchemeLightButtonEl.setAttribute("aria-pressed", String(isLight));
+  colorSchemeDarkButtonEl.setAttribute("aria-pressed", String(isDark));
+  colorSchemeSystemButtonEl.setAttribute("aria-pressed", String(isSystem));
+  colorSchemeSystemButtonEl.textContent = `System (${resolvedColorSchemeMode === "dark" ? "Dark" : "Light"})`;
 }
 
-function setThemeMode(themeMode: ThemeMode) {
-  state.themeMode = themeMode;
-  window.localStorage.setItem(THEME_STORAGE_KEY, state.themeMode);
-  applyThemeMode();
+function applyAppTheme() {
+  document.documentElement.dataset.appTheme = state.appTheme;
+
+  for (const button of appThemeButtonEls) {
+    const buttonTheme = button.dataset.appThemeValue;
+    const isActive = buttonTheme === state.appTheme;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
+function setColorSchemeMode(colorSchemeMode: ColorSchemeMode) {
+  state.colorSchemeMode = colorSchemeMode;
+  window.localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, state.colorSchemeMode);
+  applyColorSchemeMode();
+}
+
+function setAppTheme(appTheme: AppTheme) {
+  state.appTheme = appTheme;
+  window.localStorage.setItem(APP_THEME_STORAGE_KEY, state.appTheme);
+  applyAppTheme();
 }
 
 function syncSystemThemeListener() {
   if (systemThemeMediaQuery) {
-    systemThemeMediaQuery.removeEventListener("change", applyThemeMode);
+    systemThemeMediaQuery.removeEventListener("change", applyColorSchemeMode);
   }
 
   systemThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  systemThemeMediaQuery.addEventListener("change", applyThemeMode);
+  systemThemeMediaQuery.addEventListener("change", applyColorSchemeMode);
 }
 
 async function openInCode(targetPath: string, message: string) {
@@ -995,9 +1073,15 @@ window.addEventListener("DOMContentLoaded", () => {
   preferredTerminalSelectEl = document.querySelector("#preferred-terminal-select") as HTMLSelectElement;
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
-  themeLightButtonEl = document.querySelector("#theme-light") as HTMLButtonElement;
-  themeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
-  themeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
+  appThemeButtonEls = Array.from(
+    document.querySelectorAll("[data-app-theme-option]"),
+  ) as HTMLButtonElement[];
+  colorSchemeLightButtonEl = document.querySelector("#theme-light") as HTMLButtonElement;
+  colorSchemeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
+  colorSchemeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
+
+  renderTrayIconOptions();
+  renderAppBrandIcons();
 
   searchInputEl.addEventListener("input", (event) => {
     state.query = (event.target as HTMLInputElement).value;
@@ -1033,16 +1117,26 @@ window.addEventListener("DOMContentLoaded", () => {
     await savePreferredTerminal((event.target as HTMLSelectElement).value);
   });
 
-  themeLightButtonEl.addEventListener("click", () => {
-    setThemeMode("light");
+  for (const button of appThemeButtonEls) {
+    button.addEventListener("click", () => {
+      const nextTheme = button.dataset.appThemeValue ?? null;
+
+      if (isAppTheme(nextTheme)) {
+        setAppTheme(nextTheme);
+      }
+    });
+  }
+
+  colorSchemeLightButtonEl.addEventListener("click", () => {
+    setColorSchemeMode("light");
   });
 
-  themeDarkButtonEl.addEventListener("click", () => {
-    setThemeMode("dark");
+  colorSchemeDarkButtonEl.addEventListener("click", () => {
+    setColorSchemeMode("dark");
   });
 
-  themeSystemButtonEl.addEventListener("click", () => {
-    setThemeMode("system");
+  colorSchemeSystemButtonEl.addEventListener("click", () => {
+    setColorSchemeMode("system");
   });
 
   projectRootResetEl.addEventListener("click", async () => {
@@ -1114,6 +1208,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   renderReleaseNotes();
   syncSystemThemeListener();
-  applyThemeMode();
+  applyAppTheme();
+  applyColorSchemeMode();
   void initializeApp();
 });

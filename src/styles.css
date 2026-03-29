@@ -40,6 +40,7 @@
   --git-text: #36506b;
   --error: #8a342b;
   --primary-button-text: #f6fbf8;
+  --native-color-scheme: light;
 }
 
 :root[data-theme="dark"] {
@@ -75,6 +76,7 @@
   --git-text: #9ac7f0;
   --error: #f0978a;
   --primary-button-text: #0b1110;
+  --native-color-scheme: dark;
 }
 
 * {
@@ -604,6 +606,16 @@ button:disabled {
   background: var(--accent-strong);
 }
 
+.project-actions .folder-primary-action {
+  background: var(--folder-soft);
+  color: var(--folder-text);
+}
+
+.project-actions .folder-primary-action:hover:not(:disabled) {
+  background: var(--folder-soft);
+  border-color: var(--folder-text);
+}
+
 .empty-state {
   min-height: 220px;
   display: grid;
@@ -668,6 +680,13 @@ button:disabled {
   border: 1px solid var(--border-strong);
   padding: 0.72rem 0.9rem;
   font: inherit;
+  color: var(--text);
+  background: var(--panel-strong);
+  color-scheme: var(--native-color-scheme);
+}
+
+.branch-picker select option,
+.branch-picker select optgroup {
   color: var(--text);
   background: var(--panel-strong);
 }
@@ -904,6 +923,66 @@ button:disabled {
   border-radius: 12px;
   background: var(--panel-strong);
   flex-wrap: wrap;
+}
+
+.app-theme-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.app-theme-toggle .toggle-button {
+  width: 100%;
+}
+
+.tray-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tray-icon-option {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-strong);
+  color: var(--text);
+  text-align: left;
+  box-shadow: none;
+}
+
+.tray-icon-option:hover:not(:disabled) {
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+}
+
+.tray-icon-option.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tray-icon-preview {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.tray-icon-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.tray-icon-title {
+  font-weight: 700;
+}
+
+.tray-icon-description {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .settings-section select {

@@ -3,8 +3,9 @@
 ## 0.3.0
 
 - added three tray icon designs with a settings picker
+- added a build time icon option for the app brand and tray selector
 - applied the selected icon across the tray, menu, toolbar, and app header
-- updated packaged desktop app icons to use the new grid mark by default
+- updated packaged desktop app icons to use the build time mark by default
 
 ## 0.2.3
 
