@@ -21,6 +21,7 @@ type AppSettings = {
   trayIcon: TrayIconName;
   cardActions: CardActionName[];
   layout: LayoutName;
+  appTheme: AppTheme;
 };
 
 type GitCommitEntry = {
@@ -76,32 +77,27 @@ type TechIconName =
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
 const COLOR_SCHEME_STORAGE_KEY = "project-dashboard-theme";
-const APP_THEME_STORAGE_KEY = "project-dashboard-app-theme";
 const FALLBACK_APP_VERSION = packageJson.version;
 const TRAY_ICON_OPTIONS = [
   {
     name: "grid",
     label: "Grid",
     description: "Balanced dashboard tiles.",
-    previewHref: new URL("./assets/tray-grid.svg", import.meta.url).href,
   },
   {
     name: "orbit",
     label: "Orbit",
     description: "Circular motion around a hub.",
-    previewHref: new URL("./assets/tray-orbit.svg", import.meta.url).href,
   },
   {
     name: "stacks",
     label: "Stacks",
     description: "Layered project lines.",
-    previewHref: new URL("./assets/tray-stacks.svg", import.meta.url).href,
   },
 ] as const satisfies ReadonlyArray<{
   name: TrayIconName;
   label: string;
   description: string;
-  previewHref: string;
 }>;
 
 const APP_THEME_OPTIONS = [
@@ -170,7 +166,7 @@ const state = {
   opencodePath: "",
   viewMode: loadViewMode(),
   colorSchemeMode: loadColorSchemeMode(),
-  appTheme: loadAppTheme(),
+  appTheme: "neon" as AppTheme,
   activeHistoryPath: "",
   activeHistoryBranch: "",
 };
@@ -330,6 +326,7 @@ function syncSettingsUi() {
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
   syncCardActionSelects();
   syncTrayIconToggle();
+  syncAppThemeToggle();
   applyLayout();
 }
 
@@ -352,7 +349,7 @@ function renderTrayIconOptions() {
 
     const preview = document.createElement("img");
     preview.className = "tray-icon-preview";
-    preview.src = option.previewHref;
+    preview.src = getTrayIconPreviewUri(option.name);
     preview.alt = `${option.label} tray icon preview`;
 
     const content = document.createElement("span");
@@ -384,12 +381,12 @@ function renderAppBrandIcons() {
   toolbarAppIconEl.innerHTML = "";
 
   const headerPreview = document.createElement("img");
-  headerPreview.src = trayIconOption.previewHref;
+  headerPreview.src = getTrayIconPreviewUri(trayIconOption.name);
   headerPreview.alt = "";
   headerPreview.className = "app-brand-icon-image";
 
   const toolbarPreview = document.createElement("img");
-  toolbarPreview.src = trayIconOption.previewHref;
+  toolbarPreview.src = getTrayIconPreviewUri(trayIconOption.name);
   toolbarPreview.alt = "";
   toolbarPreview.className = "toolbar-app-icon-image";
 
@@ -1065,15 +1062,6 @@ function loadColorSchemeMode(): ColorSchemeMode {
   return "system";
 }
 
-function loadAppTheme(): AppTheme {
-  const stored = window.localStorage.getItem(APP_THEME_STORAGE_KEY);
-  if (isAppTheme(stored)) {
-    return stored;
-  }
-
-  return "neon";
-}
-
 function isAppTheme(value: string | null): value is AppTheme {
   return APP_THEME_OPTIONS.some((option) => option.name === value);
 }
@@ -1103,7 +1091,8 @@ function applyColorSchemeMode() {
   colorSchemeSystemButtonEl.textContent = `System (${resolvedColorSchemeMode === "dark" ? "Dark" : "Light"})`;
 }
 
-function applyAppTheme() {
+function syncAppThemeToggle() {
+  state.appTheme = state.settings?.appTheme ?? "neon";
   document.documentElement.dataset.appTheme = state.appTheme;
 
   for (const button of appThemeButtonEls) {
@@ -1132,10 +1121,18 @@ function setColorSchemeMode(colorSchemeMode: ColorSchemeMode) {
   applyColorSchemeMode();
 }
 
-function setAppTheme(appTheme: AppTheme) {
-  state.appTheme = appTheme;
-  window.localStorage.setItem(APP_THEME_STORAGE_KEY, state.appTheme);
-  applyAppTheme();
+async function saveAppTheme(appTheme: AppTheme) {
+  setSettingsStatus("Saving app theme...");
+
+  try {
+    state.settings = await invoke<AppSettings>("update_app_theme", { appTheme });
+    syncSettingsUi();
+    renderTrayIconOptions();
+    renderAppBrandIcons();
+    setSettingsStatus("App theme updated.");
+  } catch (error) {
+    setSettingsStatus(String(error), true);
+  }
 }
 
 function syncSystemThemeListener() {
@@ -1457,11 +1454,11 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   for (const button of appThemeButtonEls) {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const nextTheme = button.dataset.appThemeValue ?? null;
 
       if (isAppTheme(nextTheme)) {
-        setAppTheme(nextTheme);
+        await saveAppTheme(nextTheme);
       }
     });
   }
@@ -1557,7 +1554,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   void loadReleaseNotes();
   syncSystemThemeListener();
-  applyAppTheme();
   applyColorSchemeMode();
   void initializeApp();
 });
@@ -1568,4 +1564,39 @@ function isCardActionName(value: string): value is CardActionName {
 
 function isLayoutName(value: string | undefined): value is LayoutName {
   return value === "standard" || value === "sidebar-dock";
+}
+
+function getTrayIconPreviewUri(iconName: TrayIconName) {
+  const svg = getTrayIconSvg(iconName, state.settings?.appTheme ?? state.appTheme);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function getTrayIconSvg(iconName: TrayIconName, appTheme: AppTheme) {
+  const palette = getTrayIconPalette(appTheme);
+
+  switch (iconName) {
+    case "orbit":
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="24" fill="${palette.base}"/><path d="M19 32c0-7.18 5.82-13 13-13 3.99 0 7.56 1.8 9.94 4.64" stroke="${palette.accent}" stroke-width="6" stroke-linecap="round"/><path d="M45 32c0 7.18-5.82 13-13 13-3.99 0-7.56-1.8-9.94-4.64" stroke="${palette.foreground}" stroke-width="6" stroke-linecap="round"/><circle cx="45" cy="25" r="4" fill="${palette.foreground}"/><circle cx="19" cy="39" r="4" fill="${palette.accent}"/></svg>`;
+    case "stacks":
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x="14" y="14" width="36" height="36" rx="10" fill="${palette.base}"/><path d="M23 24h18" stroke="${palette.foreground}" stroke-width="5" stroke-linecap="round"/><path d="M23 32h18" stroke="${palette.accent}" stroke-width="5" stroke-linecap="round"/><path d="M23 40h12" stroke="${palette.foreground}" stroke-width="5" stroke-linecap="round"/><path d="M46 18v28" stroke="${palette.accent}" stroke-width="4" stroke-linecap="round"/></svg>`;
+    case "grid":
+    default:
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x="10" y="10" width="44" height="44" rx="14" fill="${palette.base}"/><rect x="18" y="18" width="10" height="10" rx="3" fill="${palette.foreground}"/><rect x="36" y="18" width="10" height="10" rx="3" fill="${palette.accent}"/><rect x="18" y="36" width="10" height="10" rx="3" fill="${palette.accent}"/><rect x="36" y="36" width="10" height="10" rx="3" fill="${palette.foreground}"/></svg>`;
+  }
+}
+
+function getTrayIconPalette(appTheme: AppTheme) {
+  switch (appTheme) {
+    case "ember":
+      return { base: "#7f3115", foreground: "#fff8f0", accent: "#e0894c" };
+    case "fjord":
+      return { base: "#14344a", foreground: "#f6fcff", accent: "#59d9dd" };
+    case "signal":
+      return { base: "#1f2330", foreground: "#fff9f2", accent: "#f3c854" };
+    case "default":
+      return { base: "#274c46", foreground: "#f3f7f4", accent: "#93d7c0" };
+    case "neon":
+    default:
+      return { base: "#111827", foreground: "#fdf2f8", accent: "#00d2ff" };
+  }
 }

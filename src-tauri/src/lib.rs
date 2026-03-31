@@ -29,6 +29,7 @@ struct AppSettingsResponse {
     tray_icon: String,
     card_actions: Vec<String>,
     layout: String,
+    app_theme: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -42,6 +43,8 @@ struct StoredSettings {
     card_actions: Vec<String>,
     #[serde(default = "default_layout")]
     layout: String,
+    #[serde(default = "default_app_theme")]
+    app_theme: String,
 }
 
 const TRAY_ICON_ID: &str = "project-dashboard-tray";
@@ -145,6 +148,10 @@ fn default_layout() -> String {
     "standard".to_string()
 }
 
+fn default_app_theme() -> String {
+    "neon".to_string()
+}
+
 fn supported_terminals() -> &'static [&'static str] {
     &[
         "auto",
@@ -173,6 +180,10 @@ fn supported_card_actions() -> &'static [&'static str] {
 
 fn supported_layouts() -> &'static [&'static str] {
     &["standard", "sidebar-dock"]
+}
+
+fn supported_app_themes() -> &'static [&'static str] {
+    &["default", "neon", "ember", "fjord", "signal"]
 }
 
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
@@ -229,21 +240,114 @@ fn normalize_layout(value: &str) -> Result<String, String> {
     }
 }
 
-fn tray_icon_image(icon_name: &str) -> Image<'static> {
-    let bytes: &'static [u8] = match icon_name {
-        "orbit" => include_bytes!("../icons/tray/tray-orbit.rgba"),
-        "stacks" => include_bytes!("../icons/tray/tray-stacks.rgba"),
-        _ => include_bytes!("../icons/tray/tray-grid.rgba"),
-    };
+fn normalize_app_theme(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
 
-    Image::new(bytes, TRAY_ICON_SIZE, TRAY_ICON_SIZE).to_owned()
+    if supported_app_themes().contains(&normalized.as_str()) {
+        Ok(normalized)
+    } else {
+        Err(format!("Unsupported app theme: {value}"))
+    }
+}
+
+fn tray_icon_palette(app_theme: &str) -> ([u8; 4], [u8; 4], [u8; 4]) {
+    match app_theme {
+        "ember" => (
+            [127, 49, 21, 255],
+            [255, 248, 240, 255],
+            [224, 137, 76, 255],
+        ),
+        "fjord" => ([20, 52, 74, 255], [246, 252, 255, 255], [89, 217, 221, 255]),
+        "signal" => ([31, 35, 48, 255], [255, 249, 242, 255], [243, 200, 84, 255]),
+        "default" => (
+            [39, 76, 70, 255],
+            [243, 247, 244, 255],
+            [147, 215, 192, 255],
+        ),
+        _ => ([17, 24, 39, 255], [253, 242, 248, 255], [0, 210, 255, 255]),
+    }
+}
+
+fn fill_rect(buffer: &mut [u8], x: usize, y: usize, width: usize, height: usize, color: [u8; 4]) {
+    for row in y..(y + height) {
+        for col in x..(x + width) {
+            let offset = (row * TRAY_ICON_SIZE as usize + col) * 4;
+            buffer[offset..offset + 4].copy_from_slice(&color);
+        }
+    }
+}
+
+fn fill_circle(buffer: &mut [u8], center_x: f32, center_y: f32, radius: f32, color: [u8; 4]) {
+    let radius_sq = radius * radius;
+
+    for y in 0..TRAY_ICON_SIZE as usize {
+        for x in 0..TRAY_ICON_SIZE as usize {
+            let dx = x as f32 + 0.5 - center_x;
+            let dy = y as f32 + 0.5 - center_y;
+
+            if dx * dx + dy * dy <= radius_sq {
+                let offset = (y * TRAY_ICON_SIZE as usize + x) * 4;
+                buffer[offset..offset + 4].copy_from_slice(&color);
+            }
+        }
+    }
+}
+
+fn tray_icon_image(icon_name: &str, app_theme: &str) -> Image<'static> {
+    let (base, foreground, accent) = tray_icon_palette(app_theme);
+    let mut rgba = vec![0_u8; (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize];
+
+    match icon_name {
+        "orbit" => {
+            fill_circle(&mut rgba, 32.0, 32.0, 24.0, base);
+            fill_circle(&mut rgba, 45.0, 25.0, 4.0, foreground);
+            fill_circle(&mut rgba, 19.0, 39.0, 4.0, accent);
+
+            for step in 0..64 {
+                let t = step as f32 / 63.0;
+                let angle = std::f32::consts::PI * (0.15 + 0.85 * t);
+                let x = 32.0 + angle.cos() * 13.0;
+                let y = 32.0 + angle.sin() * 13.0;
+                fill_circle(&mut rgba, x, y, 3.2, accent);
+            }
+
+            for step in 0..64 {
+                let t = step as f32 / 63.0;
+                let angle = std::f32::consts::PI * (1.15 + 0.85 * t);
+                let x = 32.0 + angle.cos() * 13.0;
+                let y = 32.0 + angle.sin() * 13.0;
+                fill_circle(&mut rgba, x, y, 3.2, foreground);
+            }
+        }
+        "stacks" => {
+            fill_rect(&mut rgba, 14, 14, 36, 36, base);
+            fill_rect(&mut rgba, 23, 22, 18, 4, foreground);
+            fill_rect(&mut rgba, 23, 30, 18, 4, accent);
+            fill_rect(&mut rgba, 23, 38, 12, 4, foreground);
+            fill_rect(&mut rgba, 44, 18, 4, 28, accent);
+        }
+        _ => {
+            fill_rect(&mut rgba, 10, 10, 44, 44, base);
+            fill_rect(&mut rgba, 18, 18, 10, 10, foreground);
+            fill_rect(&mut rgba, 36, 18, 10, 10, accent);
+            fill_rect(&mut rgba, 18, 36, 10, 10, accent);
+            fill_rect(&mut rgba, 36, 36, 10, 10, foreground);
+        }
+    }
+
+    Image::new_owned(rgba, TRAY_ICON_SIZE, TRAY_ICON_SIZE)
 }
 
 fn current_tray_icon_image() -> Image<'static> {
-    let tray_icon = load_settings()
-        .map(|settings| settings.tray_icon)
-        .unwrap_or_else(|_| default_tray_icon());
-    tray_icon_image(&tray_icon)
+    let settings = load_settings().unwrap_or_else(|_| StoredSettings {
+        project_root: default_project_root().to_string_lossy().into_owned(),
+        preferred_terminal: default_preferred_terminal(),
+        tray_icon: default_tray_icon(),
+        card_actions: default_card_actions(),
+        layout: default_layout(),
+        app_theme: default_app_theme(),
+    });
+    tray_icon_image(&settings.tray_icon, &settings.app_theme)
 }
 
 fn sync_app_menu_icon(app: &AppHandle) -> Result<(), String> {
@@ -470,6 +574,7 @@ fn load_settings() -> Result<StoredSettings, String> {
             tray_icon: default_tray_icon(),
             card_actions: default_card_actions(),
             layout: default_layout(),
+            app_theme: default_app_theme(),
         });
     }
 
@@ -488,6 +593,8 @@ fn load_settings() -> Result<StoredSettings, String> {
             card_actions: normalize_card_actions(&settings.card_actions)
                 .unwrap_or_else(|_| default_card_actions()),
             layout: normalize_layout(&settings.layout).unwrap_or_else(|_| default_layout()),
+            app_theme: normalize_app_theme(&settings.app_theme)
+                .unwrap_or_else(|_| default_app_theme()),
         })
     } else {
         Ok(StoredSettings {
@@ -499,6 +606,8 @@ fn load_settings() -> Result<StoredSettings, String> {
             card_actions: normalize_card_actions(&settings.card_actions)
                 .unwrap_or_else(|_| default_card_actions()),
             layout: normalize_layout(&settings.layout).unwrap_or_else(|_| default_layout()),
+            app_theme: normalize_app_theme(&settings.app_theme)
+                .unwrap_or_else(|_| default_app_theme()),
         })
     }
 }
@@ -549,6 +658,7 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
         tray_icon: settings.tray_icon,
         card_actions: settings.card_actions,
         layout: settings.layout,
+        app_theme: settings.app_theme,
     })
 }
 
@@ -599,8 +709,31 @@ fn update_tray_icon(app: AppHandle, tray_icon: String) -> Result<AppSettingsResp
     save_settings(&settings)?;
 
     if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
-        tray.set_icon(Some(tray_icon_image(&settings.tray_icon)))
-            .map_err(|error| format!("Could not update tray icon: {error}"))?;
+        tray.set_icon(Some(tray_icon_image(
+            &settings.tray_icon,
+            &settings.app_theme,
+        )))
+        .map_err(|error| format!("Could not update tray icon: {error}"))?;
+    }
+
+    sync_app_menu_icon(&app)?;
+    sync_main_window_icon(&app)?;
+
+    app_settings_response()
+}
+
+#[tauri::command]
+fn update_app_theme(app: AppHandle, app_theme: String) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings()?;
+    settings.app_theme = normalize_app_theme(&app_theme)?;
+    save_settings(&settings)?;
+
+    if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
+        tray.set_icon(Some(tray_icon_image(
+            &settings.tray_icon,
+            &settings.app_theme,
+        )))
+        .map_err(|error| format!("Could not update tray icon: {error}"))?;
     }
 
     sync_app_menu_icon(&app)?;
@@ -1352,6 +1485,7 @@ pub fn run() {
             update_tray_icon,
             update_card_actions,
             update_layout,
+            update_app_theme,
             list_projects,
             open_in_code,
             open_in_terminal,
