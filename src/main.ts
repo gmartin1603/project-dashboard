@@ -51,7 +51,7 @@ type GitCommitDetails = {
 };
 
 type ViewMode = "detailed" | "compact";
-type IconName = "workspace" | "folder" | "git" | "terminal";
+type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode";
 type TrayIconName = "grid" | "orbit" | "stacks";
 type TechIconName =
   | "node"
@@ -142,6 +142,7 @@ const state = {
   openingPath: "",
   creatingWorkspacePath: "",
   terminalPath: "",
+  opencodePath: "",
   viewMode: loadViewMode(),
   themeMode: loadThemeMode(),
   activeHistoryPath: "",
@@ -457,6 +458,16 @@ function createProjectCard(project: Project) {
 
   status.append(
     createStatusAction(
+      "opencode",
+      `Open ${project.name} with Opencode`,
+      async () => {
+        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
+      },
+    ),
+  );
+
+  status.append(
+    createStatusAction(
       "folder",
       `Open ${project.name} folder in VS Code`,
       async () => {
@@ -518,33 +529,89 @@ function createProjectCard(project: Project) {
   const actions = document.createElement("div");
   actions.className = "project-actions";
 
+  const actionPanel = document.createElement("div");
+  actionPanel.className = "project-action-panel";
+
+  const actionLabel = document.createElement("p");
+  actionLabel.className = "detail-label";
+  actionLabel.textContent = "Open In";
+
   if (project.workspacePath) {
-    const openWorkspaceButton = document.createElement("button");
-    openWorkspaceButton.type = "button";
-    openWorkspaceButton.className = "primary-action";
-    openWorkspaceButton.append(createIcon("workspace", "button-icon"), "Open Workspace");
-    openWorkspaceButton.title = `Open ${project.name} workspace in VS Code`;
-    openWorkspaceButton.setAttribute("aria-label", `Open ${project.name} workspace in VS Code`);
-    openWorkspaceButton.dataset.baseDisabled = "false";
-    openWorkspaceButton.addEventListener("click", async () => {
-      await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
-    });
+    const openWorkspaceButton = createProjectActionButton(
+      "workspace",
+      "VS Code Workspace",
+      "Open the saved workspace in VS Code",
+      `Open ${project.name} workspace in VS Code`,
+      "primary-action code-action",
+      async () => {
+        await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
+      },
+    );
     actions.append(openWorkspaceButton);
+
+    const openOpencodeButton = createProjectActionButton(
+      "opencode",
+      "Opencode",
+      "Open the project folder in Opencode",
+      `Open ${project.name} with Opencode`,
+      "secondary-action opencode-action",
+      async () => {
+        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
+      },
+    );
+    actions.append(openOpencodeButton);
+
+    const openTerminalButton = createProjectActionButton(
+      "terminal",
+      "Terminal",
+      "Open the project folder in your preferred terminal",
+      `Open ${project.name} in Terminal`,
+      "secondary-action terminal-action",
+      async () => {
+        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
+      },
+    );
+    actions.append(openTerminalButton);
   } else {
-    const createWorkspaceButton = document.createElement("button");
-    createWorkspaceButton.type = "button";
-    createWorkspaceButton.className = "primary-action";
-    createWorkspaceButton.append(createIcon("workspace", "button-icon"), "Create Workspace");
-    createWorkspaceButton.title = `Create a default workspace for ${project.name}`;
-    createWorkspaceButton.setAttribute("aria-label", `Create a default workspace for ${project.name}`);
-    createWorkspaceButton.dataset.baseDisabled = "false";
-    createWorkspaceButton.addEventListener("click", async () => {
-      await createDefaultWorkspace(project);
-    });
-    actions.append(createWorkspaceButton);
+    const openFolderButton = createProjectActionButton(
+      "folder",
+      "VS Code Folder",
+      "Open the project folder in VS Code",
+      `Open ${project.name} folder in VS Code`,
+      "primary-action folder-primary-action code-action",
+      async () => {
+        await openInCode(project.path, `Opened ${project.name} in VS Code.`);
+      },
+    );
+    actions.append(openFolderButton);
+
+    const openOpencodeButton = createProjectActionButton(
+      "opencode",
+      "Opencode",
+      "Open the project folder in Opencode",
+      `Open ${project.name} with Opencode`,
+      "secondary-action opencode-action",
+      async () => {
+        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
+      },
+    );
+    actions.append(openOpencodeButton);
+
+    const openTerminalButton = createProjectActionButton(
+      "terminal",
+      "Terminal",
+      "Open the project folder in your preferred terminal",
+      `Open ${project.name} in Terminal`,
+      "secondary-action terminal-action",
+      async () => {
+        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
+      },
+    );
+    actions.append(openTerminalButton);
   }
 
-  footer.append(actions, modified);
+  actionPanel.append(actionLabel, actions);
+  footer.append(actionPanel, modified);
   card.append(header, detailsPanel, footer);
   return card;
 }
@@ -581,6 +648,45 @@ function createStatusAction(icon: IconName, label: string, onClick: () => Promis
   button.addEventListener("click", async () => {
     await onClick();
   });
+  return button;
+}
+
+function createProjectActionButton(
+  icon: IconName,
+  label: string,
+  description: string,
+  title: string,
+  className: string,
+  onClick: () => Promise<void>,
+) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  button.dataset.baseDisabled = "false";
+
+  const iconBadge = document.createElement("span");
+  iconBadge.className = "project-action-icon";
+  iconBadge.append(createIcon(icon, "button-icon"));
+
+  const copy = document.createElement("span");
+  copy.className = "project-action-copy";
+
+  const labelText = document.createElement("span");
+  labelText.className = "project-action-label";
+  labelText.textContent = label;
+
+  const descriptionText = document.createElement("span");
+  descriptionText.className = "project-action-description";
+  descriptionText.textContent = description;
+
+  copy.append(labelText, descriptionText);
+  button.append(iconBadge, copy);
+  button.addEventListener("click", async () => {
+    await onClick();
+  });
+
   return button;
 }
 
@@ -640,6 +746,13 @@ function getIconPaths(name: IconName) {
         { tag: "rect", attributes: { ...common, x: "3", y: "5", width: "18", height: "14", rx: "2.5" } },
         { tag: "path", attributes: { ...common, d: "M7.5 10.5 10 12l-2.5 1.5" } },
         { tag: "path", attributes: { ...common, d: "M12.5 14.5h4" } },
+      ];
+    case "opencode":
+      return [
+        { tag: "rect", attributes: { ...common, x: "3", y: "5", width: "18", height: "14", rx: "2.5" } },
+        { tag: "path", attributes: { ...common, d: "M8 9.5 5.5 12 8 14.5" } },
+        { tag: "path", attributes: { ...common, d: "M16 9.5 18.5 12 16 14.5" } },
+        { tag: "path", attributes: { ...common, d: "M10.5 16l3-8" } },
       ];
     case "folder":
     default:
@@ -925,6 +1038,22 @@ async function openInTerminal(targetPath: string, message: string) {
   }
 }
 
+async function openInOpencode(targetPath: string, message: string) {
+  state.opencodePath = targetPath;
+  syncBusyButtons();
+  setStatus(`Launching Opencode for ${targetPath}...`);
+
+  try {
+    await invoke("open_in_opencode", { targetPath });
+    setStatus(message);
+  } catch (error) {
+    setStatus(String(error), true);
+  } finally {
+    state.opencodePath = "";
+    syncBusyButtons();
+  }
+}
+
 async function createDefaultWorkspace(project: Project) {
   state.creatingWorkspacePath = project.path;
   syncBusyButtons();
@@ -944,7 +1073,10 @@ async function createDefaultWorkspace(project: Project) {
 
 function syncBusyButtons() {
   const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button");
-  const isBusy = state.openingPath.length > 0 || state.creatingWorkspacePath.length > 0 || state.terminalPath.length > 0;
+  const isBusy = state.openingPath.length > 0
+    || state.creatingWorkspacePath.length > 0
+    || state.terminalPath.length > 0
+    || state.opencodePath.length > 0;
 
   for (const button of buttons) {
     const baseDisabled = button.dataset.baseDisabled === "true";

@@ -600,10 +600,20 @@ button:disabled {
   gap: 12px;
 }
 
-.project-actions {
-  display: flex;
+.project-action-panel {
+  display: grid;
   gap: 8px;
-  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.project-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: stretch;
 }
 
 .project-modified {
@@ -611,11 +621,15 @@ button:disabled {
 }
 
 .project-actions button {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 164px;
+  justify-content: start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  text-align: left;
 }
 
 .project-actions .primary-action {
@@ -627,11 +641,59 @@ button:disabled {
 .project-actions .secondary-action {
   background: var(--panel-strong);
   color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .project-actions .primary-action:hover:not(:disabled) {
   border-color: transparent;
   background: var(--accent-strong);
+}
+
+.project-actions .secondary-action:hover:not(:disabled) {
+  background: var(--panel-muted);
+}
+
+.project-actions .folder-primary-action {
+  background: var(--folder-soft);
+  color: var(--folder-text);
+}
+
+.project-actions .folder-primary-action:hover:not(:disabled) {
+  background: var(--folder-soft);
+  border-color: var(--folder-text);
+}
+
+.project-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.project-action-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.project-action-label,
+.project-action-description {
+  display: block;
+}
+
+.project-action-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.project-action-description {
+  font-size: 0.8rem;
+  line-height: 1.25;
+  opacity: 0.82;
 }
 
 .empty-state {
@@ -1010,6 +1072,15 @@ button:disabled {
   gap: 12px;
 }
 
+.project-grid[data-view-mode="compact"] .project-action-panel .detail-label,
+.project-grid[data-view-mode="compact"] .project-action-description {
+  display: none;
+}
+
+.project-grid[data-view-mode="compact"] .project-actions button {
+  padding: 0.78rem 0.92rem;
+}
+
 .project-grid[data-view-mode="compact"] .project-path,
 .project-grid[data-view-mode="compact"] .project-detail-value,
 .project-grid[data-view-mode="compact"] .results-note {
@@ -1077,4 +1148,5 @@ button:disabled {
   .project-actions button {
     width: 100%;
   }
+
 }

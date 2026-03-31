@@ -125,6 +125,7 @@ fn supported_terminals() -> &'static [&'static str] {
         "auto",
         "x-terminal-emulator",
         "gnome-terminal",
+        "terminator",
         "ptyxis",
         "kgx",
         "konsole",
@@ -245,6 +246,131 @@ fn shell_command(
         .map_err(|error| format!("Could not launch command: {error}"))?;
 
     Ok(())
+}
+
+fn escaped_path_display(path: &Path) -> String {
+    path.to_string_lossy().replace('"', "\\\"")
+}
+
+fn terminal_launch_command(target_path: &Path, preferred_terminal: &str) -> String {
+    let candidate_display = escaped_path_display(target_path);
+
+    if preferred_terminal == "auto" {
+        return format!(
+            concat!(
+                "if command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator; ",
+                "elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal --working-directory=\"{0}\"; ",
+                "elif command -v terminator >/dev/null 2>&1; then terminator --working-directory=\"{0}\"; ",
+                "elif command -v ptyxis >/dev/null 2>&1; then ptyxis --new-window --working-directory \"{0}\"; ",
+                "elif command -v kgx >/dev/null 2>&1; then kgx --working-directory=\"{0}\"; ",
+                "elif command -v konsole >/dev/null 2>&1; then konsole --workdir \"{0}\"; ",
+                "elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal --working-directory=\"{0}\"; ",
+                "elif command -v tilix >/dev/null 2>&1; then tilix --working-directory=\"{0}\"; ",
+                "elif command -v alacritty >/dev/null 2>&1; then alacritty --working-directory \"{0}\"; ",
+                "elif command -v kitty >/dev/null 2>&1; then kitty --directory \"{0}\"; ",
+                "elif command -v wezterm >/dev/null 2>&1; then wezterm start --cwd \"{0}\"; ",
+                "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"{0}\"; ",
+                "else printf 'No supported terminal app was found in the shell environment.\\n' >&2; exit 127; fi"
+            ),
+            candidate_display
+        );
+    }
+
+    let launch_command = match preferred_terminal {
+        "x-terminal-emulator" => preferred_terminal.to_string(),
+        "gnome-terminal" => {
+            format!("gnome-terminal --working-directory=\"{candidate_display}\"")
+        }
+        "terminator" => format!("terminator --working-directory=\"{candidate_display}\""),
+        "ptyxis" => format!("ptyxis --new-window --working-directory \"{candidate_display}\""),
+        "kgx" => format!("kgx --working-directory=\"{candidate_display}\""),
+        "konsole" => format!("konsole --workdir \"{candidate_display}\""),
+        "xfce4-terminal" => {
+            format!("xfce4-terminal --working-directory=\"{candidate_display}\"")
+        }
+        "tilix" => format!("tilix --working-directory=\"{candidate_display}\""),
+        "alacritty" => format!("alacritty --working-directory \"{candidate_display}\""),
+        "kitty" => format!("kitty --directory \"{candidate_display}\""),
+        "wezterm" => format!("wezterm start --cwd \"{candidate_display}\""),
+        "foot" => format!("foot --working-directory=\"{candidate_display}\""),
+        _ => preferred_terminal.to_string(),
+    };
+
+    format!(
+        "command -v {0} >/dev/null 2>&1 || {{ printf 'Preferred terminal \\\"{0}\\\" was not found in the shell environment.\\n' >&2; exit 127; }}; {1}",
+        preferred_terminal, launch_command
+    )
+}
+
+fn opencode_terminal_command(target_path: &Path, preferred_terminal: &str) -> String {
+    let candidate_display = escaped_path_display(target_path);
+
+    let launch_command = if preferred_terminal == "auto" {
+        format!(
+            concat!(
+                "if command -v terminator >/dev/null 2>&1; then terminator --working-directory=\"{0}\" --geometry=140x44 -x opencode; ",
+                "elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal --working-directory=\"{0}\" -- opencode; ",
+                "elif command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator -e 'sh -lc \"cd \\\"{0}\\\" && exec opencode\"'; ",
+                "elif command -v ptyxis >/dev/null 2>&1; then ptyxis --new-window --working-directory \"{0}\" -- opencode; ",
+                "elif command -v kgx >/dev/null 2>&1; then kgx --working-directory=\"{0}\" opencode; ",
+                "elif command -v konsole >/dev/null 2>&1; then konsole --workdir \"{0}\" -e opencode; ",
+                "elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal --working-directory=\"{0}\" -x opencode; ",
+                "elif command -v tilix >/dev/null 2>&1; then tilix --working-directory=\"{0}\" --command 'opencode'; ",
+                "elif command -v alacritty >/dev/null 2>&1; then alacritty --working-directory \"{0}\" -e opencode; ",
+                "elif command -v kitty >/dev/null 2>&1; then kitty --directory \"{0}\" opencode; ",
+                "elif command -v wezterm >/dev/null 2>&1; then wezterm start --cwd \"{0}\" opencode; ",
+                "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"{0}\" opencode; ",
+                "else printf 'No supported terminal app was found in the shell environment.\\n' >&2; exit 127; fi"
+            ),
+            candidate_display
+        )
+    } else {
+        match preferred_terminal {
+            "x-terminal-emulator" => format!(
+                "x-terminal-emulator -e 'sh -lc \"cd \\\"{candidate_display}\\\" && exec opencode\"'"
+            ),
+            "gnome-terminal" => {
+                format!("gnome-terminal --working-directory=\"{candidate_display}\" -- opencode")
+            }
+            "terminator" => {
+                format!(
+                    "terminator --working-directory=\"{candidate_display}\" --geometry=140x44 -x opencode"
+                )
+            }
+            "ptyxis" => {
+                format!("ptyxis --new-window --working-directory \"{candidate_display}\" -- opencode")
+            }
+            "kgx" => format!("kgx --working-directory=\"{candidate_display}\" opencode"),
+            "konsole" => format!("konsole --workdir \"{candidate_display}\" -e opencode"),
+            "xfce4-terminal" => {
+                format!("xfce4-terminal --working-directory=\"{candidate_display}\" -x opencode")
+            }
+            "tilix" => format!("tilix --working-directory=\"{candidate_display}\" --command 'opencode'"),
+            "alacritty" => format!("alacritty --working-directory \"{candidate_display}\" -e opencode"),
+            "kitty" => format!("kitty --directory \"{candidate_display}\" opencode"),
+            "wezterm" => format!("wezterm start --cwd \"{candidate_display}\" opencode"),
+            "foot" => format!("foot --working-directory=\"{candidate_display}\" opencode"),
+            _ => preferred_terminal.to_string(),
+        }
+    };
+
+    format!(
+        concat!(
+            "command -v opencode >/dev/null 2>&1 || {{ ",
+            "printf 'Opencode CLI command \"opencode\" was not found in the shell environment.\\n' >&2; ",
+            "exit 127; ",
+            "}}; ",
+            "{0}"
+        ),
+        if preferred_terminal == "auto" {
+            launch_command
+        } else {
+            format!(
+                "command -v {0} >/dev/null 2>&1 || {{ printf 'Preferred terminal \\\"{0}\\\" was not found in the shell environment.\\n' >&2; exit 127; }}; {1}",
+                preferred_terminal, launch_command
+            )
+        }
+    )
 }
 
 fn desktop_entry_contents(binary_path: &Path) -> String {
@@ -485,54 +611,20 @@ fn open_in_code(target_path: String) -> Result<(), String> {
 fn open_in_terminal(target_path: String) -> Result<(), String> {
     let candidate = validate_path_within_code_root(&target_path)?;
     let preferred_terminal = load_settings()?.preferred_terminal;
-    let candidate_display = candidate.to_string_lossy().replace('"', "\\\"");
-    let terminal_command = if preferred_terminal == "auto" {
-        format!(
-            concat!(
-                "if command -v x-terminal-emulator >/dev/null 2>&1; then x-terminal-emulator; ",
-                "elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal --working-directory=\"{0}\"; ",
-                "elif command -v ptyxis >/dev/null 2>&1; then ptyxis --new-window --working-directory \"{0}\"; ",
-                "elif command -v kgx >/dev/null 2>&1; then kgx --working-directory=\"{0}\"; ",
-                "elif command -v konsole >/dev/null 2>&1; then konsole --workdir \"{0}\"; ",
-                "elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal --working-directory=\"{0}\"; ",
-                "elif command -v tilix >/dev/null 2>&1; then tilix --working-directory=\"{0}\"; ",
-                "elif command -v alacritty >/dev/null 2>&1; then alacritty --working-directory \"{0}\"; ",
-                "elif command -v kitty >/dev/null 2>&1; then kitty --directory \"{0}\"; ",
-                "elif command -v wezterm >/dev/null 2>&1; then wezterm start --cwd \"{0}\"; ",
-                "elif command -v foot >/dev/null 2>&1; then foot --working-directory=\"{0}\"; ",
-                "else printf 'No supported terminal app was found in the shell environment.\\n' >&2; exit 127; fi"
-            ),
-            candidate_display
-        )
-    } else {
-        let launch_command = match preferred_terminal.as_str() {
-            "x-terminal-emulator" => preferred_terminal.clone(),
-            "gnome-terminal" => {
-                format!("gnome-terminal --working-directory=\"{candidate_display}\"")
-            }
-            "ptyxis" => format!("ptyxis --new-window --working-directory \"{candidate_display}\""),
-            "kgx" => format!("kgx --working-directory=\"{candidate_display}\""),
-            "konsole" => format!("konsole --workdir \"{candidate_display}\""),
-            "xfce4-terminal" => {
-                format!("xfce4-terminal --working-directory=\"{candidate_display}\"")
-            }
-            "tilix" => format!("tilix --working-directory=\"{candidate_display}\""),
-            "alacritty" => format!("alacritty --working-directory \"{candidate_display}\""),
-            "kitty" => format!("kitty --directory \"{candidate_display}\""),
-            "wezterm" => format!("wezterm start --cwd \"{candidate_display}\""),
-            "foot" => format!("foot --working-directory=\"{candidate_display}\""),
-            _ => preferred_terminal.clone(),
-        };
-
-        format!(
-            "command -v {0} >/dev/null 2>&1 || {{ printf 'Preferred terminal \\\"{0}\\\" was not found in the shell environment.\\n' >&2; exit 127; }}; {1}",
-            preferred_terminal,
-            launch_command
-        )
-    };
+    let terminal_command = terminal_launch_command(&candidate, &preferred_terminal);
 
     shell_command(&terminal_command, None, Some(&candidate))
         .map_err(|error| format!("Could not launch Terminal: {error}"))
+}
+
+#[tauri::command]
+fn open_in_opencode(target_path: String) -> Result<(), String> {
+    let candidate = validate_path_within_code_root(&target_path)?;
+    let preferred_terminal = load_settings()?.preferred_terminal;
+    let terminal_command = opencode_terminal_command(&candidate, &preferred_terminal);
+
+    shell_command(&terminal_command, None, Some(&candidate))
+        .map_err(|error| format!("Could not launch Opencode: {error}"))
 }
 
 #[tauri::command]
@@ -1085,6 +1177,7 @@ pub fn run() {
             list_projects,
             open_in_code,
             open_in_terminal,
+            open_in_opencode,
             create_default_workspace,
             get_git_history,
             list_git_branches,
