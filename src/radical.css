@@ -1,8 +1,175 @@
 /* =========================================
    BASE LAYOUT & ANIMATIONS
    ========================================= */
+:root[data-app-theme="neon"],
+:root[data-app-theme="ember"],
+:root[data-app-theme="fjord"],
+:root[data-app-theme="signal"] {
+  --theme-control-text: var(--text);
+  --theme-control-hover-text: var(--primary-button-text);
+  --theme-active-text: var(--text);
+  --theme-active-muted: var(--muted);
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: var(--muted);
+  --theme-primary-copy: var(--primary-button-text);
+  --theme-primary-icon-bg: color-mix(in srgb, var(--primary-button-text) 16%, transparent);
+  --theme-primary-icon-color: var(--primary-button-text);
+}
+
+:root[data-app-theme="neon"] button,
+:root[data-app-theme="neon"] input,
+:root[data-app-theme="neon"] select,
+:root[data-app-theme="ember"] button,
+:root[data-app-theme="ember"] input,
+:root[data-app-theme="ember"] select,
+:root[data-app-theme="fjord"] button,
+:root[data-app-theme="fjord"] input,
+:root[data-app-theme="fjord"] select,
+:root[data-app-theme="signal"] button,
+:root[data-app-theme="signal"] input,
+:root[data-app-theme="signal"] select {
+  color: var(--theme-control-text) !important;
+}
+
+:root[data-app-theme="neon"] button:hover:not(:disabled),
+:root[data-app-theme="ember"] button:hover:not(:disabled),
+:root[data-app-theme="fjord"] button:hover:not(:disabled),
+:root[data-app-theme="signal"] button:hover:not(:disabled) {
+  color: var(--theme-control-hover-text) !important;
+}
+
+:root[data-app-theme="neon"] .toggle-button.is-active,
+:root[data-app-theme="neon"] .tray-icon-option.is-active,
+:root[data-app-theme="ember"] .toggle-button.is-active,
+:root[data-app-theme="ember"] .tray-icon-option.is-active,
+:root[data-app-theme="fjord"] .toggle-button.is-active,
+:root[data-app-theme="fjord"] .tray-icon-option.is-active,
+:root[data-app-theme="signal"] .toggle-button.is-active,
+:root[data-app-theme="signal"] .tray-icon-option.is-active {
+  color: var(--theme-active-text) !important;
+}
+
+:root[data-app-theme="neon"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="ember"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="fjord"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="signal"] .tray-icon-option.is-active .tray-icon-description {
+  color: var(--theme-active-muted) !important;
+}
+
+:root[data-app-theme="neon"] .project-actions .primary-action,
+:root[data-app-theme="neon"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="neon"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="neon"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="neon"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="neon"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-description {
+  color: var(--theme-primary-copy) !important;
+}
+
+:root[data-app-theme="neon"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="neon"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="neon"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="neon"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon {
+  background: var(--theme-primary-icon-bg) !important;
+  color: var(--theme-primary-icon-color) !important;
+}
+
+:root[data-app-theme="neon"] .project-actions .secondary-action,
+:root[data-app-theme="neon"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="neon"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .secondary-action,
+:root[data-app-theme="ember"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="ember"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .secondary-action,
+:root[data-app-theme="fjord"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .secondary-action,
+:root[data-app-theme="signal"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="signal"] .project-actions .secondary-action .project-action-description {
+  color: var(--theme-secondary-text) !important;
+}
+
+:root[data-app-theme="neon"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="neon"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="neon"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="signal"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description {
+  color: var(--theme-secondary-muted) !important;
+}
+
+:root[data-app-theme="neon"] .history-item,
+:root[data-app-theme="neon"] .tray-icon-option,
+:root[data-app-theme="neon"] .tray-icon-title,
+:root[data-app-theme="ember"] .history-item,
+:root[data-app-theme="ember"] .tray-icon-option,
+:root[data-app-theme="ember"] .tray-icon-title,
+:root[data-app-theme="fjord"] .history-item,
+:root[data-app-theme="fjord"] .tray-icon-option,
+:root[data-app-theme="fjord"] .tray-icon-title,
+:root[data-app-theme="signal"] .history-item,
+:root[data-app-theme="signal"] .tray-icon-option,
+:root[data-app-theme="signal"] .tray-icon-title {
+  color: var(--theme-secondary-text) !important;
+}
+
+:root[data-app-theme="neon"] .tray-icon-description,
+:root[data-app-theme="neon"] .history-item:hover:not(:disabled),
+:root[data-app-theme="ember"] .tray-icon-description,
+:root[data-app-theme="ember"] .history-item:hover:not(:disabled),
+:root[data-app-theme="fjord"] .tray-icon-description,
+:root[data-app-theme="fjord"] .history-item:hover:not(:disabled),
+:root[data-app-theme="signal"] .tray-icon-description,
+:root[data-app-theme="signal"] .history-item:hover:not(:disabled) {
+  color: var(--theme-secondary-muted) !important;
+}
+
 :root[data-app-theme="neon"] {
   font-family: "Space Grotesk", "SF Pro Display", -apple-system, sans-serif !important;
+  --theme-control-text: #ff007f;
+  --theme-control-hover-text: #ffffff;
+  --theme-active-text: #ff007f;
+  --theme-active-muted: #7a4d70;
+  --theme-secondary-text: #ff007f;
+  --theme-secondary-muted: #64748b;
 }
 
 :root[data-app-theme="neon"] body {
@@ -295,6 +462,15 @@
   --git-text: #00ffcc;
   --error: #ff3366;
   --primary-button-text: #050505;
+  --theme-control-text: #00ffcc;
+  --theme-control-hover-text: #ffffff;
+  --theme-active-text: #00ffcc;
+  --theme-active-muted: #b7fbef;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: #b9c7d8;
+  --theme-primary-copy: #ffffff;
+  --theme-primary-icon-bg: rgba(255, 255, 255, 0.12);
+  --theme-primary-icon-color: #ffffff;
 }
 
 :root[data-app-theme="neon"][data-theme="dark"] body {
@@ -335,49 +511,59 @@
 }
 
 :root[data-app-theme="ember"] {
-  font-family: "Trebuchet MS", "Aptos", sans-serif !important;
-  color: #2d2118;
-  background: #f4eadf;
+  font-family: "Segoe UI", "Aptos", sans-serif !important;
+  color: #301d14;
+  background: #f7ecdf;
 
-  --page: #f4eadf;
-  --panel: rgba(253, 248, 241, 0.94);
+  --page: #f7ecdf;
+  --panel: rgba(255, 248, 239, 0.94);
   --panel-strong: #fffaf3;
-  --panel-muted: #efe1d2;
-  --border: #d8b89a;
-  --border-strong: #b57b47;
-  --text: #2d2118;
-  --muted: #755842;
-  --accent: #a04f24;
-  --accent-strong: #7c3217;
-  --accent-soft: rgba(160, 79, 36, 0.12);
-  --folder-soft: rgba(156, 103, 61, 0.12);
-  --git-soft: rgba(112, 80, 47, 0.12);
-  --shadow: 0 18px 40px rgba(92, 61, 34, 0.12);
-  --page-line: rgba(124, 50, 23, 0.06);
-  --focus-outline: rgba(160, 79, 36, 0.3);
-  --button-hover-border: rgba(124, 50, 23, 0.62);
-  --button-hover-shadow: 0 12px 24px rgba(124, 50, 23, 0.16);
-  --card-hover-border: rgba(124, 50, 23, 0.35);
-  --card-hover-shadow: 0 22px 34px rgba(92, 61, 34, 0.18);
-  --toggle-hover-bg: rgba(160, 79, 36, 0.08);
-  --modal-shadow: 0 28px 70px rgba(68, 42, 24, 0.2);
-  --modal-backdrop: rgba(49, 30, 16, 0.28);
-  --history-backdrop: rgba(49, 30, 16, 0.38);
-  --inline-code-bg: rgba(160, 79, 36, 0.08);
-  --folder-text: #915c2b;
-  --git-text: #6f4f2e;
-  --error: #9b2d20;
-  --primary-button-text: #fff7ef;
+  --panel-muted: #f2e1cf;
+  --border: #d7b18c;
+  --border-strong: #9a542c;
+  --text: #301d14;
+  --muted: #765642;
+  --accent: #b45b2d;
+  --accent-strong: #7f3115;
+  --accent-soft: rgba(180, 91, 45, 0.12);
+  --folder-soft: rgba(170, 112, 56, 0.12);
+  --git-soft: rgba(111, 70, 35, 0.12);
+  --shadow: 0 18px 42px rgba(92, 53, 28, 0.12);
+  --page-line: rgba(127, 49, 21, 0.05);
+  --focus-outline: rgba(180, 91, 45, 0.24);
+  --button-hover-border: rgba(127, 49, 21, 0.54);
+  --button-hover-shadow: 0 14px 28px rgba(127, 49, 21, 0.18);
+  --card-hover-border: rgba(127, 49, 21, 0.28);
+  --card-hover-shadow: 0 24px 34px rgba(92, 53, 28, 0.18);
+  --toggle-hover-bg: rgba(180, 91, 45, 0.08);
+  --modal-shadow: 0 30px 80px rgba(58, 31, 17, 0.2);
+  --modal-backdrop: rgba(49, 27, 15, 0.28);
+  --history-backdrop: rgba(49, 27, 15, 0.38);
+  --inline-code-bg: rgba(180, 91, 45, 0.09);
+  --folder-text: #9b632f;
+  --git-text: #7a4b23;
+  --error: #a43023;
+  --primary-button-text: #fff8f0;
+  --theme-control-text: var(--text);
+  --theme-control-hover-text: var(--primary-button-text);
+  --theme-active-text: var(--text);
+  --theme-active-muted: #5b2d17;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: #4a2b19;
+  --theme-primary-copy: #fff8f0;
+  --theme-primary-icon-bg: rgba(255, 248, 240, 0.16);
+  --theme-primary-icon-color: #fff8f0;
 }
 
 :root[data-app-theme="ember"] body {
   background:
-    radial-gradient(circle at top left, rgba(210, 130, 73, 0.18), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(111, 79, 46, 0.14), transparent 30%),
+    radial-gradient(circle at 12% 8%, rgba(214, 123, 61, 0.22), transparent 24%),
+    radial-gradient(circle at 88% 82%, rgba(124, 62, 28, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 241, 0.5), rgba(242, 224, 205, 0.28)),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
     var(--page) !important;
-  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
 }
 
 :root[data-app-theme="ember"] .topbar-panel,
@@ -386,8 +572,10 @@
 :root[data-app-theme="ember"] .project-card,
 :root[data-app-theme="ember"] .empty-state,
 :root[data-app-theme="ember"] dialog {
-  background: linear-gradient(180deg, rgba(255, 250, 243, 0.98), rgba(248, 239, 228, 0.96));
-  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(245, 232, 216, 0.95)),
+    var(--panel);
+  border-radius: 18px !important;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -395,83 +583,190 @@
 :root[data-app-theme="ember"] h1,
 :root[data-app-theme="ember"] h2,
 :root[data-app-theme="ember"] .project-title {
-  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif !important;
-  letter-spacing: -0.03em !important;
+  font-family: "Georgia", "Times New Roman", serif !important;
+  letter-spacing: -0.04em !important;
   color: var(--text);
+}
+
+:root[data-app-theme="ember"] .section-label,
+:root[data-app-theme="ember"] .detail-label,
+:root[data-app-theme="ember"] .eyebrow,
+:root[data-app-theme="ember"] .summary-label {
+  color: #915c3a;
+  letter-spacing: 0.14em;
 }
 
 :root[data-app-theme="ember"] button,
 :root[data-app-theme="ember"] input,
 :root[data-app-theme="ember"] select {
-  border-radius: 10px !important;
-  background: var(--panel-strong) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, rgba(255, 251, 244, 0.98), rgba(248, 238, 226, 0.96)) !important;
   color: var(--text) !important;
   border: 1px solid var(--border-strong) !important;
   letter-spacing: 0.01em !important;
   text-transform: none !important;
   font-weight: 700 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 :root[data-app-theme="ember"] button:hover:not(:disabled) {
-  background: var(--accent) !important;
+  background: linear-gradient(135deg, #c66a37, #8b3418) !important;
   color: var(--primary-button-text) !important;
   border-color: var(--accent-strong) !important;
   box-shadow: var(--button-hover-shadow) !important;
+}
+
+:root[data-app-theme="ember"] .toggle-button.is-active,
+:root[data-app-theme="ember"] .tray-icon-option.is-active {
+  background: linear-gradient(135deg, rgba(198, 106, 55, 0.18), rgba(139, 52, 24, 0.08)) !important;
+  border-color: rgba(139, 52, 24, 0.28) !important;
+  color: var(--text) !important;
+}
+
+:root[data-app-theme="ember"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="ember"] .toggle-button.is-active,
+:root[data-app-theme="ember"] .status-action,
+:root[data-app-theme="ember"] .project-icon {
+  color: #5b2d17 !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .primary-action,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action {
+  background: var(--accent) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: var(--accent-strong) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .primary-action,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .folder-primary-action,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #fff8f0 !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="ember"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="ember"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="ember"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(255, 248, 240, 0.16) !important;
+  color: #fff8f0 !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .secondary-action,
+:root[data-app-theme="ember"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="ember"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="ember"] .history-item,
+:root[data-app-theme="ember"] .tray-icon-option,
+:root[data-app-theme="ember"] .tray-icon-title {
+  color: var(--text) !important;
+}
+
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"] .tray-icon-description,
+:root[data-app-theme="ember"] .history-item:hover:not(:disabled) {
+  color: #4a2b19 !important;
 }
 
 :root[data-app-theme="ember"] .project-card {
   border-inline-start: 4px solid var(--accent);
 }
 
+:root[data-app-theme="ember"] .project-action-panel,
+:root[data-app-theme="ember"] .root-summary,
+:root[data-app-theme="ember"] .settings-section,
+:root[data-app-theme="ember"] .history-item,
+:root[data-app-theme="ember"] .release-note-section {
+  background: linear-gradient(180deg, rgba(255, 245, 234, 0.88), rgba(242, 224, 205, 0.74)) !important;
+  border-color: rgba(127, 49, 21, 0.14) !important;
+}
+
+:root[data-app-theme="ember"] .project-icon,
+:root[data-app-theme="ember"] .status-action,
+:root[data-app-theme="ember"] .project-action-icon {
+  background: linear-gradient(135deg, rgba(198, 106, 55, 0.14), rgba(139, 52, 24, 0.08)) !important;
+}
+
 :root[data-app-theme="ember"] .project-path,
 :root[data-app-theme="ember"] p.project-detail-value {
-  background: rgba(160, 79, 36, 0.08) !important;
-  border-color: rgba(124, 50, 23, 0.18) !important;
+  background: rgba(180, 91, 45, 0.07) !important;
+  border-color: rgba(127, 49, 21, 0.18) !important;
 }
 
 :root[data-app-theme="ember"][data-theme="dark"] {
-  color: #f2e4d6;
-  background: #1b1411;
+  color: #f6e6d6;
+  background: #1a110e;
 
-  --page: #1b1411;
-  --panel: rgba(38, 29, 24, 0.94);
-  --panel-strong: #2b211d;
-  --panel-muted: #231b17;
-  --border: #5e4739;
-  --border-strong: #b97a43;
-  --text: #f2e4d6;
-  --muted: #c6ab92;
-  --accent: #d18449;
-  --accent-strong: #efb47c;
-  --accent-soft: rgba(209, 132, 73, 0.14);
-  --folder-soft: rgba(209, 132, 73, 0.08);
-  --git-soft: rgba(239, 180, 124, 0.08);
-  --shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
-  --page-line: rgba(209, 132, 73, 0.08);
-  --focus-outline: rgba(239, 180, 124, 0.3);
-  --button-hover-border: rgba(239, 180, 124, 0.52);
-  --button-hover-shadow: 0 14px 28px rgba(209, 132, 73, 0.16);
-  --card-hover-border: rgba(239, 180, 124, 0.28);
-  --card-hover-shadow: 0 20px 34px rgba(0, 0, 0, 0.32);
-  --toggle-hover-bg: rgba(209, 132, 73, 0.12);
-  --modal-shadow: 0 32px 76px rgba(0, 0, 0, 0.48);
-  --modal-backdrop: rgba(10, 7, 6, 0.58);
-  --history-backdrop: rgba(10, 7, 6, 0.7);
-  --inline-code-bg: rgba(209, 132, 73, 0.12);
-  --folder-text: #efb47c;
-  --git-text: #f5ca9e;
-  --error: #ff9f80;
-  --primary-button-text: #170f0b;
+  --page: #1a110e;
+  --panel: rgba(36, 24, 20, 0.94);
+  --panel-strong: #2a1a16;
+  --panel-muted: #241713;
+  --border: #5d4032;
+  --border-strong: #cb7b45;
+  --text: #f6e6d6;
+  --muted: #d3b295;
+  --accent: #e0894c;
+  --accent-strong: #f4b27b;
+  --accent-soft: rgba(224, 137, 76, 0.14);
+  --folder-soft: rgba(224, 137, 76, 0.08);
+  --git-soft: rgba(244, 178, 123, 0.08);
+  --shadow: 0 22px 48px rgba(0, 0, 0, 0.36);
+  --page-line: rgba(224, 137, 76, 0.08);
+  --focus-outline: rgba(244, 178, 123, 0.24);
+  --button-hover-border: rgba(244, 178, 123, 0.48);
+  --button-hover-shadow: 0 16px 30px rgba(224, 137, 76, 0.16);
+  --card-hover-border: rgba(244, 178, 123, 0.24);
+  --card-hover-shadow: 0 22px 36px rgba(0, 0, 0, 0.34);
+  --toggle-hover-bg: rgba(224, 137, 76, 0.12);
+  --modal-shadow: 0 34px 80px rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(8, 5, 4, 0.58);
+  --history-backdrop: rgba(8, 5, 4, 0.7);
+  --inline-code-bg: rgba(224, 137, 76, 0.12);
+  --folder-text: #f0b37f;
+  --git-text: #f6c99f;
+  --error: #ff9e83;
+  --primary-button-text: #1a0f0a;
+  --theme-control-text: var(--text);
+  --theme-control-hover-text: #1a0f0a;
+  --theme-active-text: var(--text);
+  --theme-active-muted: #ffd5ae;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: var(--text);
+  --theme-primary-copy: #1a0f0a;
+  --theme-primary-icon-bg: rgba(26, 15, 10, 0.14);
+  --theme-primary-icon-color: #1a0f0a;
 }
 
 :root[data-app-theme="ember"][data-theme="dark"] body {
   background:
-    radial-gradient(circle at top left, rgba(209, 132, 73, 0.14), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(239, 180, 124, 0.08), transparent 30%),
+    radial-gradient(circle at 10% 10%, rgba(224, 137, 76, 0.18), transparent 24%),
+    radial-gradient(circle at 84% 80%, rgba(244, 178, 123, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(80, 43, 27, 0.18), rgba(0, 0, 0, 0)),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
     var(--page) !important;
-  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
 }
 
 :root[data-app-theme="ember"][data-theme="dark"] .topbar-panel,
@@ -480,53 +775,148 @@
 :root[data-app-theme="ember"][data-theme="dark"] .project-card,
 :root[data-app-theme="ember"][data-theme="dark"] .empty-state,
 :root[data-app-theme="ember"][data-theme="dark"] dialog {
-  background: linear-gradient(180deg, rgba(45, 34, 28, 0.98), rgba(34, 26, 22, 0.96));
+  background:
+    linear-gradient(180deg, rgba(47, 31, 25, 0.98), rgba(30, 20, 17, 0.96)),
+    var(--panel);
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] button,
+:root[data-app-theme="ember"][data-theme="dark"] input,
+:root[data-app-theme="ember"][data-theme="dark"] select {
+  background: linear-gradient(180deg, rgba(60, 39, 31, 0.96), rgba(39, 25, 21, 0.94)) !important;
+  color: var(--text) !important;
+  border-color: rgba(244, 178, 123, 0.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 228, 201, 0.08) !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-action-panel,
+:root[data-app-theme="ember"][data-theme="dark"] .root-summary,
+:root[data-app-theme="ember"][data-theme="dark"] .settings-section,
+:root[data-app-theme="ember"][data-theme="dark"] .history-item,
+:root[data-app-theme="ember"][data-theme="dark"] .release-note-section {
+  background: linear-gradient(180deg, rgba(54, 35, 29, 0.78), rgba(35, 23, 19, 0.74)) !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .toggle-button.is-active,
+:root[data-app-theme="ember"][data-theme="dark"] .tray-icon-option.is-active {
+  background: linear-gradient(135deg, rgba(224, 137, 76, 0.2), rgba(244, 178, 123, 0.08)) !important;
+  color: var(--text) !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="ember"][data-theme="dark"] .toggle-button.is-active,
+:root[data-app-theme="ember"][data-theme="dark"] .status-action,
+:root[data-app-theme="ember"][data-theme="dark"] .project-icon {
+  color: #ffd5ae !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action {
+  background: var(--accent) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: var(--accent-strong) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #1a0f0a !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(26, 15, 10, 0.14) !important;
+  color: #1a0f0a !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .secondary-action,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="ember"][data-theme="dark"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="ember"][data-theme="dark"] .history-item,
+:root[data-app-theme="ember"][data-theme="dark"] .tray-icon-option,
+:root[data-app-theme="ember"][data-theme="dark"] .tray-icon-title,
+:root[data-app-theme="ember"][data-theme="dark"] .tray-icon-description,
+:root[data-app-theme="ember"][data-theme="dark"] .history-item:hover:not(:disabled) {
+  color: var(--text) !important;
 }
 
 :root[data-app-theme="fjord"] {
-  font-family: "Aptos", "Segoe UI", sans-serif !important;
-  color: #102235;
-  background: #edf6fb;
+  font-family: "Segoe UI", "Aptos", sans-serif !important;
+  color: #102436;
+  background: #ebf5fb;
 
-  --page: #edf6fb;
-  --panel: rgba(244, 251, 255, 0.8);
-  --panel-strong: rgba(255, 255, 255, 0.94);
-  --panel-muted: rgba(229, 240, 247, 0.78);
-  --border: rgba(109, 159, 183, 0.36);
-  --border-strong: rgba(47, 115, 147, 0.48);
-  --text: #102235;
-  --muted: #567082;
-  --accent: #2f7393;
-  --accent-strong: #1ba0a5;
-  --accent-soft: rgba(27, 160, 165, 0.12);
-  --folder-soft: rgba(47, 115, 147, 0.08);
-  --git-soft: rgba(27, 160, 165, 0.08);
-  --shadow: 0 20px 50px rgba(32, 78, 103, 0.12);
-  --page-line: rgba(47, 115, 147, 0.05);
-  --focus-outline: rgba(27, 160, 165, 0.24);
-  --button-hover-border: rgba(27, 160, 165, 0.44);
-  --button-hover-shadow: 0 12px 28px rgba(47, 115, 147, 0.18);
-  --card-hover-border: rgba(27, 160, 165, 0.26);
-  --card-hover-shadow: 0 22px 38px rgba(32, 78, 103, 0.16);
-  --toggle-hover-bg: rgba(27, 160, 165, 0.08);
-  --modal-shadow: 0 28px 72px rgba(20, 57, 77, 0.18);
+  --page: #ebf5fb;
+  --panel: rgba(244, 251, 255, 0.78);
+  --panel-strong: rgba(255, 255, 255, 0.9);
+  --panel-muted: rgba(227, 241, 250, 0.78);
+  --border: rgba(104, 151, 180, 0.34);
+  --border-strong: rgba(42, 108, 145, 0.44);
+  --text: #102436;
+  --muted: #567287;
+  --accent: #266f97;
+  --accent-strong: #1aa3b5;
+  --accent-soft: rgba(26, 163, 181, 0.12);
+  --folder-soft: rgba(38, 111, 151, 0.08);
+  --git-soft: rgba(26, 163, 181, 0.08);
+  --shadow: 0 22px 48px rgba(30, 80, 110, 0.12);
+  --page-line: rgba(38, 111, 151, 0.05);
+  --focus-outline: rgba(26, 163, 181, 0.22);
+  --button-hover-border: rgba(26, 163, 181, 0.4);
+  --button-hover-shadow: 0 14px 28px rgba(38, 111, 151, 0.18);
+  --card-hover-border: rgba(26, 163, 181, 0.22);
+  --card-hover-shadow: 0 26px 42px rgba(30, 80, 110, 0.14);
+  --toggle-hover-bg: rgba(26, 163, 181, 0.08);
+  --modal-shadow: 0 30px 74px rgba(18, 55, 77, 0.18);
   --modal-backdrop: rgba(18, 44, 58, 0.24);
   --history-backdrop: rgba(18, 44, 58, 0.34);
-  --inline-code-bg: rgba(47, 115, 147, 0.08);
-  --folder-text: #256b84;
-  --git-text: #1d8ca2;
-  --error: #b04e62;
-  --primary-button-text: #f6fbfe;
+  --inline-code-bg: rgba(38, 111, 151, 0.08);
+  --folder-text: #256d90;
+  --git-text: #178aa1;
+  --error: #a14c64;
+  --primary-button-text: #f7fcff;
+  --theme-control-text: var(--accent);
+  --theme-control-hover-text: #f6fbfe;
+  --theme-active-text: #163f56;
+  --theme-active-muted: #275975;
+  --theme-secondary-text: #14344a;
+  --theme-secondary-muted: #32586f;
+  --theme-primary-copy: #f6fcff;
+  --theme-primary-icon-bg: rgba(246, 252, 255, 0.18);
+  --theme-primary-icon-color: #f6fcff;
 }
 
 :root[data-app-theme="fjord"] body {
   background:
-    radial-gradient(circle at 15% 20%, rgba(66, 183, 212, 0.16), transparent 24%),
-    radial-gradient(circle at 85% 12%, rgba(100, 149, 237, 0.12), transparent 28%),
+    radial-gradient(circle at 16% 20%, rgba(79, 196, 220, 0.18), transparent 22%),
+    radial-gradient(circle at 84% 10%, rgba(105, 151, 215, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(224, 241, 250, 0.22)),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
-    linear-gradient(180deg, #f3f9fc 0%, #e7f3f8 100%) !important;
-  background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
+    linear-gradient(180deg, #f6fbfe 0%, #e6f2f8 100%) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
 }
 
 :root[data-app-theme="fjord"] .topbar-panel,
@@ -535,41 +925,137 @@
 :root[data-app-theme="fjord"] .project-card,
 :root[data-app-theme="fjord"] .empty-state,
 :root[data-app-theme="fjord"] dialog {
-  background: rgba(245, 252, 255, 0.76);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(235, 245, 250, 0.48)),
+    rgba(245, 252, 255, 0.72);
   border-radius: 24px !important;
   border: 1px solid var(--border);
-  backdrop-filter: blur(18px) saturate(155%);
-  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: var(--shadow);
 }
 
 :root[data-app-theme="fjord"] h1,
 :root[data-app-theme="fjord"] h2,
 :root[data-app-theme="fjord"] .project-title {
-  font-family: "Gill Sans", "Trebuchet MS", sans-serif !important;
+  font-family: "Gill Sans", "Segoe UI", sans-serif !important;
   letter-spacing: -0.045em !important;
-  background-image: linear-gradient(135deg, #2f7393, #1ba0a5) !important;
+  background-image: linear-gradient(135deg, #2c6e95, #17a7b1 68%, #6cb7df) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
 }
 
+:root[data-app-theme="fjord"] .section-label,
+:root[data-app-theme="fjord"] .detail-label,
+:root[data-app-theme="fjord"] .eyebrow,
+:root[data-app-theme="fjord"] .summary-label {
+  color: #4f7990;
+}
+
 :root[data-app-theme="fjord"] button,
 :root[data-app-theme="fjord"] input,
 :root[data-app-theme="fjord"] select {
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.88) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
   color: var(--accent) !important;
-  border: 1px solid rgba(47, 115, 147, 0.22) !important;
+  border: 1px solid rgba(42, 108, 145, 0.22) !important;
   text-transform: none !important;
   letter-spacing: 0.02em !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 :root[data-app-theme="fjord"] button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2f7393, #1ba0a5) !important;
+  background: linear-gradient(135deg, #2c6e95, #17a7b1) !important;
   color: #f6fbfe !important;
   border-color: transparent !important;
   box-shadow: var(--button-hover-shadow) !important;
+}
+
+:root[data-app-theme="fjord"] .toggle-button.is-active,
+:root[data-app-theme="fjord"] .tray-icon-option.is-active,
+:root[data-app-theme="fjord"] .status-action,
+:root[data-app-theme="fjord"] .project-icon {
+  background: linear-gradient(135deg, rgba(132, 213, 224, 0.22), rgba(255, 255, 255, 0.42)) !important;
+  color: #165b79 !important;
+}
+
+:root[data-app-theme="fjord"] .tray-icon-option.is-active,
+:root[data-app-theme="fjord"] .toggle-button.is-active {
+  color: #163f56 !important;
+}
+
+:root[data-app-theme="fjord"] .tray-icon-option.is-active .tray-icon-description {
+  color: #275975 !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .primary-action,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action {
+  background: linear-gradient(135deg, #2c6e95, #17a7b1) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, #225878, #138b94) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .primary-action,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #f6fcff !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="fjord"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="fjord"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="fjord"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(246, 252, 255, 0.18) !important;
+  color: #f6fcff !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .secondary-action,
+:root[data-app-theme="fjord"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="fjord"] .history-item,
+:root[data-app-theme="fjord"] .tray-icon-option,
+:root[data-app-theme="fjord"] .tray-icon-title {
+  color: #14344a !important;
+}
+
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"] .tray-icon-description,
+:root[data-app-theme="fjord"] .history-item:hover:not(:disabled) {
+  color: #32586f !important;
+}
+
+:root[data-app-theme="fjord"] .project-action-panel,
+:root[data-app-theme="fjord"] .root-summary,
+:root[data-app-theme="fjord"] .settings-section,
+:root[data-app-theme="fjord"] .history-item,
+:root[data-app-theme="fjord"] .release-note-section {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(229, 242, 248, 0.42)) !important;
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 
 :root[data-app-theme="fjord"] .project-card:hover {
@@ -578,48 +1064,58 @@
 }
 
 :root[data-app-theme="fjord"][data-theme="dark"] {
-  color: #e7f4ff;
-  background: #09141d;
+  color: #e7f5ff;
+  background: #08141d;
 
-  --page: #09141d;
-  --panel: rgba(14, 29, 41, 0.84);
-  --panel-strong: rgba(21, 38, 51, 0.94);
-  --panel-muted: rgba(17, 31, 43, 0.82);
-  --border: rgba(79, 125, 151, 0.34);
-  --border-strong: rgba(63, 183, 189, 0.42);
-  --text: #e7f4ff;
-  --muted: #98b5c8;
-  --accent: #68b3cc;
-  --accent-strong: #5dd3d8;
-  --accent-soft: rgba(93, 211, 216, 0.12);
-  --folder-soft: rgba(104, 179, 204, 0.08);
-  --git-soft: rgba(93, 211, 216, 0.08);
-  --shadow: 0 24px 54px rgba(0, 0, 0, 0.32);
-  --page-line: rgba(93, 211, 216, 0.06);
-  --focus-outline: rgba(93, 211, 216, 0.3);
-  --button-hover-border: rgba(93, 211, 216, 0.42);
-  --button-hover-shadow: 0 14px 28px rgba(93, 211, 216, 0.14);
-  --card-hover-border: rgba(93, 211, 216, 0.26);
-  --card-hover-shadow: 0 24px 40px rgba(0, 0, 0, 0.34);
-  --toggle-hover-bg: rgba(93, 211, 216, 0.1);
-  --modal-shadow: 0 32px 80px rgba(0, 0, 0, 0.46);
+  --page: #08141d;
+  --panel: rgba(13, 28, 40, 0.84);
+  --panel-strong: rgba(20, 37, 50, 0.94);
+  --panel-muted: rgba(15, 29, 41, 0.84);
+  --border: rgba(79, 126, 154, 0.3);
+  --border-strong: rgba(80, 191, 200, 0.42);
+  --text: #e7f5ff;
+  --muted: #98b7ca;
+  --accent: #6bb8ce;
+  --accent-strong: #59d9dd;
+  --accent-soft: rgba(89, 217, 221, 0.12);
+  --folder-soft: rgba(107, 184, 206, 0.08);
+  --git-soft: rgba(89, 217, 221, 0.08);
+  --shadow: 0 26px 58px rgba(0, 0, 0, 0.34);
+  --page-line: rgba(89, 217, 221, 0.05);
+  --focus-outline: rgba(89, 217, 221, 0.24);
+  --button-hover-border: rgba(89, 217, 221, 0.42);
+  --button-hover-shadow: 0 16px 30px rgba(89, 217, 221, 0.14);
+  --card-hover-border: rgba(89, 217, 221, 0.22);
+  --card-hover-shadow: 0 26px 42px rgba(0, 0, 0, 0.36);
+  --toggle-hover-bg: rgba(89, 217, 221, 0.1);
+  --modal-shadow: 0 34px 84px rgba(0, 0, 0, 0.48);
   --modal-backdrop: rgba(4, 10, 15, 0.56);
   --history-backdrop: rgba(4, 10, 15, 0.68);
-  --inline-code-bg: rgba(93, 211, 216, 0.08);
-  --folder-text: #89d6ea;
-  --git-text: #72ecf0;
-  --error: #f196aa;
-  --primary-button-text: #081018;
+  --inline-code-bg: rgba(89, 217, 221, 0.08);
+  --folder-text: #8edbef;
+  --git-text: #73f1f0;
+  --error: #ef9ab0;
+  --primary-button-text: #071019;
+  --theme-control-text: #dff7ff;
+  --theme-control-hover-text: #ffffff;
+  --theme-active-text: #ccfbff;
+  --theme-active-muted: #bceaf4;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: var(--text);
+  --theme-primary-copy: #071019;
+  --theme-primary-icon-bg: rgba(7, 16, 25, 0.14);
+  --theme-primary-icon-color: #071019;
 }
 
 :root[data-app-theme="fjord"][data-theme="dark"] body {
   background:
-    radial-gradient(circle at 15% 20%, rgba(93, 211, 216, 0.12), transparent 24%),
-    radial-gradient(circle at 85% 12%, rgba(104, 179, 204, 0.08), transparent 28%),
+    radial-gradient(circle at 14% 18%, rgba(89, 217, 221, 0.14), transparent 22%),
+    radial-gradient(circle at 86% 10%, rgba(107, 184, 206, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(88, 156, 185, 0.08), rgba(0, 0, 0, 0)),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
-    linear-gradient(180deg, #0b1924 0%, #08121a 100%) !important;
-  background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
+    linear-gradient(180deg, #0b1a24 0%, #071119 100%) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
 }
 
 :root[data-app-theme="fjord"][data-theme="dark"] .topbar-panel,
@@ -628,53 +1124,146 @@
 :root[data-app-theme="fjord"][data-theme="dark"] .project-card,
 :root[data-app-theme="fjord"][data-theme="dark"] .empty-state,
 :root[data-app-theme="fjord"][data-theme="dark"] dialog {
-  background: rgba(14, 29, 41, 0.82);
+  background:
+    linear-gradient(180deg, rgba(18, 36, 49, 0.86), rgba(11, 23, 33, 0.84)),
+    rgba(14, 29, 41, 0.82);
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] button,
+:root[data-app-theme="fjord"][data-theme="dark"] input,
+:root[data-app-theme="fjord"][data-theme="dark"] select {
+  background: linear-gradient(180deg, rgba(28, 51, 66, 0.9), rgba(16, 31, 42, 0.92)) !important;
+  color: #dff7ff !important;
+  border-color: rgba(89, 217, 221, 0.3) !important;
+  box-shadow: inset 0 1px 0 rgba(219, 250, 255, 0.06) !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-action-panel,
+:root[data-app-theme="fjord"][data-theme="dark"] .root-summary,
+:root[data-app-theme="fjord"][data-theme="dark"] .settings-section,
+:root[data-app-theme="fjord"][data-theme="dark"] .history-item,
+:root[data-app-theme="fjord"][data-theme="dark"] .release-note-section {
+  background: linear-gradient(180deg, rgba(19, 39, 52, 0.72), rgba(10, 24, 34, 0.66)) !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .toggle-button.is-active,
+:root[data-app-theme="fjord"][data-theme="dark"] .tray-icon-option.is-active,
+:root[data-app-theme="fjord"][data-theme="dark"] .status-action,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-icon {
+  color: #ccfbff !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .tray-icon-option.is-active .tray-icon-description {
+  color: #bceaf4 !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action {
+  background: linear-gradient(135deg, #6bb8ce, #59d9dd) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, #84d4dd, #76eef0) !important;
+  border-color: transparent !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #071019 !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(7, 16, 25, 0.14) !important;
+  color: #071019 !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .secondary-action,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .history-item,
+:root[data-app-theme="fjord"][data-theme="dark"] .tray-icon-option,
+:root[data-app-theme="fjord"][data-theme="dark"] .tray-icon-title,
+:root[data-app-theme="fjord"][data-theme="dark"] .tray-icon-description,
+:root[data-app-theme="fjord"][data-theme="dark"] .history-item:hover:not(:disabled) {
+  color: var(--text) !important;
 }
 
 :root[data-app-theme="signal"] {
-  font-family: "Verdana", "Geneva", sans-serif !important;
-  color: #1e2230;
-  background: #fff8ea;
+  font-family: "Bahnschrift", "Arial Narrow", "Segoe UI", sans-serif !important;
+  color: #1f2330;
+  background: #fff4d8;
 
-  --page: #fff8ea;
-  --panel: rgba(255, 251, 240, 0.96);
-  --panel-strong: #fffdf7;
-  --panel-muted: #fff1c9;
-  --border: #f1c35e;
-  --border-strong: #d95d39;
-  --text: #1e2230;
-  --muted: #67614f;
-  --accent: #d95d39;
-  --accent-strong: #f1c35e;
-  --accent-soft: rgba(217, 93, 57, 0.1);
-  --folder-soft: rgba(241, 195, 94, 0.14);
-  --git-soft: rgba(217, 93, 57, 0.14);
-  --shadow: 8px 8px 0 rgba(30, 34, 48, 0.14);
-  --page-line: rgba(217, 93, 57, 0.06);
-  --focus-outline: rgba(217, 93, 57, 0.24);
-  --button-hover-border: rgba(30, 34, 48, 0.85);
-  --button-hover-shadow: 4px 4px 0 rgba(30, 34, 48, 0.22);
-  --card-hover-border: rgba(30, 34, 48, 0.85);
-  --card-hover-shadow: 10px 10px 0 rgba(30, 34, 48, 0.18);
-  --toggle-hover-bg: rgba(217, 93, 57, 0.08);
-  --modal-shadow: 12px 12px 0 rgba(30, 34, 48, 0.22);
-  --modal-backdrop: rgba(30, 34, 48, 0.22);
-  --history-backdrop: rgba(30, 34, 48, 0.3);
-  --inline-code-bg: rgba(241, 195, 94, 0.24);
-  --folder-text: #a76620;
-  --git-text: #b63f26;
-  --error: #b21e2f;
+  --page: #fff4d8;
+  --panel: rgba(255, 249, 232, 0.96);
+  --panel-strong: #fffef8;
+  --panel-muted: #ffe8ad;
+  --border: #f0b84e;
+  --border-strong: #db5732;
+  --text: #1f2330;
+  --muted: #6a604b;
+  --accent: #db5732;
+  --accent-strong: #f3c854;
+  --accent-soft: rgba(219, 87, 50, 0.1);
+  --folder-soft: rgba(243, 200, 84, 0.14);
+  --git-soft: rgba(219, 87, 50, 0.14);
+  --shadow: 10px 10px 0 rgba(31, 35, 48, 0.14);
+  --page-line: rgba(219, 87, 50, 0.06);
+  --focus-outline: rgba(219, 87, 50, 0.22);
+  --button-hover-border: rgba(31, 35, 48, 0.88);
+  --button-hover-shadow: 5px 5px 0 rgba(31, 35, 48, 0.22);
+  --card-hover-border: rgba(31, 35, 48, 0.88);
+  --card-hover-shadow: 12px 12px 0 rgba(31, 35, 48, 0.18);
+  --toggle-hover-bg: rgba(219, 87, 50, 0.08);
+  --modal-shadow: 14px 14px 0 rgba(31, 35, 48, 0.22);
+  --modal-backdrop: rgba(31, 35, 48, 0.22);
+  --history-backdrop: rgba(31, 35, 48, 0.3);
+  --inline-code-bg: rgba(243, 200, 84, 0.24);
+  --folder-text: #a76516;
+  --git-text: #ba3f26;
+  --error: #b61f34;
   --primary-button-text: #fff9f2;
+  --theme-control-text: var(--text);
+  --theme-control-hover-text: var(--primary-button-text);
+  --theme-active-text: #51391d;
+  --theme-active-muted: #51391d;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: #6a604b;
+  --theme-primary-copy: #fff9f2;
+  --theme-primary-icon-bg: rgba(255, 249, 242, 0.16);
+  --theme-primary-icon-color: #fff9f2;
 }
 
 :root[data-app-theme="signal"] body {
   background:
-    repeating-linear-gradient(-45deg, transparent 0 24px, rgba(217, 93, 57, 0.045) 24px 48px),
-    radial-gradient(circle at top right, rgba(241, 195, 94, 0.22), transparent 24%),
+    repeating-linear-gradient(-45deg, transparent 0 22px, rgba(219, 87, 50, 0.055) 22px 44px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 236, 186, 0.1)),
+    radial-gradient(circle at top right, rgba(243, 200, 84, 0.24), transparent 22%),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
     var(--page) !important;
-  background-size: auto, 100% 100%, 40px 40px, 40px 40px, auto !important;
+  background-size: auto, 100% 100%, 100% 100%, 40px 40px, 40px 40px, auto !important;
 }
 
 :root[data-app-theme="signal"] .topbar-panel,
@@ -683,8 +1272,8 @@
 :root[data-app-theme="signal"] .project-card,
 :root[data-app-theme="signal"] .empty-state,
 :root[data-app-theme="signal"] dialog {
-  background: var(--panel);
-  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(255, 252, 241, 0.98), rgba(255, 241, 198, 0.88));
+  border-radius: 14px !important;
   border: 2px solid var(--border-strong);
   box-shadow: var(--shadow);
 }
@@ -692,74 +1281,259 @@
 :root[data-app-theme="signal"] h1,
 :root[data-app-theme="signal"] h2,
 :root[data-app-theme="signal"] .project-title {
-  font-family: "Franklin Gothic Medium", "Arial Narrow", sans-serif !important;
+  font-family: "Bahnschrift Condensed", "Arial Narrow", sans-serif !important;
   text-transform: uppercase;
-  letter-spacing: -0.045em !important;
+  letter-spacing: -0.03em !important;
   color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"] .section-label,
+:root[data-app-theme="signal"] .detail-label,
+:root[data-app-theme="signal"] .eyebrow,
+:root[data-app-theme="signal"] .summary-label {
+  color: #9b3a20;
+  letter-spacing: 0.16em;
 }
 
 :root[data-app-theme="signal"] button,
 :root[data-app-theme="signal"] input,
 :root[data-app-theme="signal"] select {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   border: 2px solid var(--text) !important;
   background: var(--panel-strong) !important;
   color: var(--text) !important;
-  box-shadow: 4px 4px 0 rgba(30, 34, 48, 0.16) !important;
+  box-shadow: 4px 4px 0 rgba(31, 35, 48, 0.16) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
 
 :root[data-app-theme="signal"] button:hover:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 rgba(30, 34, 48, 0.16) !important;
+  box-shadow: 2px 2px 0 rgba(31, 35, 48, 0.16) !important;
   background: var(--accent) !important;
   color: var(--primary-button-text) !important;
+}
+
+:root[data-app-theme="signal"] .toggle-button.is-active,
+:root[data-app-theme="signal"] .tray-icon-option.is-active,
+:root[data-app-theme="signal"] .status-action,
+:root[data-app-theme="signal"] .project-icon {
+  background: linear-gradient(180deg, rgba(243, 200, 84, 0.56), rgba(255, 244, 212, 0.86)) !important;
+  border-color: var(--text) !important;
+  color: #1f2330 !important;
+}
+
+:root[data-app-theme="signal"] .tray-icon-option.is-active .tray-icon-description,
+:root[data-app-theme="signal"] .toggle-button.is-active {
+  color: #51391d !important;
+}
+
+:root[data-app-theme="signal"] .project-actions .primary-action,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action {
+  background: var(--accent) !important;
+  border-color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: #b84424 !important;
+  border-color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"] .project-actions .primary-action,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"] .project-actions .folder-primary-action,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #fff9f2 !important;
+}
+
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="signal"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="signal"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="signal"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(255, 249, 242, 0.16) !important;
+  color: #fff9f2 !important;
+}
+
+:root[data-app-theme="signal"] .project-actions .secondary-action,
+:root[data-app-theme="signal"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="signal"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="signal"] .history-item,
+:root[data-app-theme="signal"] .tray-icon-option,
+:root[data-app-theme="signal"] .tray-icon-title,
+:root[data-app-theme="signal"] .history-item:hover:not(:disabled) {
+  color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"] .tray-icon-description {
+  color: #6a604b !important;
+}
+
+:root[data-app-theme="signal"] .project-action-panel,
+:root[data-app-theme="signal"] .root-summary,
+:root[data-app-theme="signal"] .settings-section,
+:root[data-app-theme="signal"] .history-item,
+:root[data-app-theme="signal"] .release-note-section {
+  background: linear-gradient(180deg, rgba(255, 246, 214, 0.96), rgba(255, 236, 180, 0.82)) !important;
+  border: 2px solid rgba(31, 35, 48, 0.18) !important;
 }
 
 :root[data-app-theme="signal"] .project-card {
   border-width: 2px;
 }
 
-:root[data-app-theme="signal"][data-theme="dark"] {
-  color: #f8f3dc;
-  background: #151724;
+:root[data-app-theme="signal"] .project-card:hover {
+  transform: translate(-2px, -2px);
+}
 
-  --page: #151724;
-  --panel: rgba(28, 31, 47, 0.96);
-  --panel-strong: #20243a;
+:root[data-app-theme="signal"][data-theme="dark"] {
+  color: #faf1d2;
+  background: #131520;
+
+  --page: #131520;
+  --panel: rgba(28, 32, 46, 0.96);
+  --panel-strong: #1f2436;
   --panel-muted: #1a1d2d;
-  --border: #f1c35e;
-  --border-strong: #ff7b54;
-  --text: #f8f3dc;
-  --muted: #d8cea2;
-  --accent: #ff7b54;
-  --accent-strong: #ffd166;
-  --accent-soft: rgba(255, 123, 84, 0.14);
-  --folder-soft: rgba(255, 209, 102, 0.08);
-  --git-soft: rgba(255, 123, 84, 0.08);
-  --shadow: 10px 10px 0 rgba(0, 0, 0, 0.34);
-  --page-line: rgba(255, 123, 84, 0.06);
-  --focus-outline: rgba(255, 123, 84, 0.28);
-  --button-hover-border: rgba(255, 209, 102, 0.84);
-  --button-hover-shadow: 4px 4px 0 rgba(0, 0, 0, 0.28);
-  --card-hover-border: rgba(255, 209, 102, 0.84);
-  --card-hover-shadow: 12px 12px 0 rgba(0, 0, 0, 0.26);
-  --toggle-hover-bg: rgba(255, 123, 84, 0.12);
-  --modal-shadow: 12px 12px 0 rgba(0, 0, 0, 0.34);
+  --border: #f2c257;
+  --border-strong: #ff7a4b;
+  --text: #faf1d2;
+  --muted: #dece9e;
+  --accent: #ff7a4b;
+  --accent-strong: #ffd25f;
+  --accent-soft: rgba(255, 122, 75, 0.14);
+  --folder-soft: rgba(255, 210, 95, 0.08);
+  --git-soft: rgba(255, 122, 75, 0.08);
+  --shadow: 12px 12px 0 rgba(0, 0, 0, 0.34);
+  --page-line: rgba(255, 122, 75, 0.06);
+  --focus-outline: rgba(255, 122, 75, 0.26);
+  --button-hover-border: rgba(255, 210, 95, 0.84);
+  --button-hover-shadow: 5px 5px 0 rgba(0, 0, 0, 0.28);
+  --card-hover-border: rgba(255, 210, 95, 0.84);
+  --card-hover-shadow: 14px 14px 0 rgba(0, 0, 0, 0.26);
+  --toggle-hover-bg: rgba(255, 122, 75, 0.12);
+  --modal-shadow: 14px 14px 0 rgba(0, 0, 0, 0.34);
   --modal-backdrop: rgba(6, 7, 13, 0.56);
   --history-backdrop: rgba(6, 7, 13, 0.68);
-  --inline-code-bg: rgba(255, 209, 102, 0.18);
-  --folder-text: #ffd166;
-  --git-text: #ff9776;
-  --error: #ff7b8d;
-  --primary-button-text: #1b1020;
+  --inline-code-bg: rgba(255, 210, 95, 0.18);
+  --folder-text: #ffd25f;
+  --git-text: #ff9a78;
+  --error: #ff7c92;
+  --primary-button-text: #1a1020;
+  --theme-control-text: var(--text);
+  --theme-control-hover-text: #ffffff;
+  --theme-active-text: #1a1020;
+  --theme-active-muted: #43321d;
+  --theme-secondary-text: var(--text);
+  --theme-secondary-muted: var(--text);
+  --theme-primary-copy: #1a1020;
+  --theme-primary-icon-bg: rgba(26, 16, 32, 0.14);
+  --theme-primary-icon-color: #1a1020;
 }
 
 :root[data-app-theme="signal"][data-theme="dark"] body {
   background:
-    repeating-linear-gradient(-45deg, transparent 0 24px, rgba(255, 123, 84, 0.04) 24px 48px),
-    radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 24%),
+    repeating-linear-gradient(-45deg, transparent 0 22px, rgba(255, 122, 75, 0.05) 22px 44px),
+    linear-gradient(180deg, rgba(255, 122, 75, 0.04), rgba(0, 0, 0, 0)),
+    radial-gradient(circle at top right, rgba(255, 210, 95, 0.14), transparent 22%),
     linear-gradient(var(--page-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
     var(--page) !important;
-  background-size: auto, 100% 100%, 40px 40px, 40px 40px, auto !important;
+  background-size: auto, 100% 100%, 100% 100%, 40px 40px, 40px 40px, auto !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .topbar-panel,
+:root[data-app-theme="signal"][data-theme="dark"] .toolbar-panel,
+:root[data-app-theme="signal"][data-theme="dark"] .results-header,
+:root[data-app-theme="signal"][data-theme="dark"] .project-card,
+:root[data-app-theme="signal"][data-theme="dark"] .empty-state,
+:root[data-app-theme="signal"][data-theme="dark"] dialog {
+  background: linear-gradient(180deg, rgba(35, 38, 56, 0.98), rgba(22, 24, 38, 0.92));
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-action-panel,
+:root[data-app-theme="signal"][data-theme="dark"] .root-summary,
+:root[data-app-theme="signal"][data-theme="dark"] .settings-section,
+:root[data-app-theme="signal"][data-theme="dark"] .history-item,
+:root[data-app-theme="signal"][data-theme="dark"] .release-note-section {
+  background: linear-gradient(180deg, rgba(33, 36, 55, 0.96), rgba(24, 27, 41, 0.84)) !important;
+  border: 2px solid rgba(255, 210, 95, 0.18) !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .toggle-button.is-active,
+:root[data-app-theme="signal"][data-theme="dark"] .tray-icon-option.is-active,
+:root[data-app-theme="signal"][data-theme="dark"] .status-action,
+:root[data-app-theme="signal"][data-theme="dark"] .project-icon {
+  color: #1a1020 !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .tray-icon-option.is-active .tray-icon-description {
+  color: #43321d !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action {
+  background: var(--accent) !important;
+  border-color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) {
+  background: #ff946c !important;
+  border-color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  color: #1a1020 !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description {
+  opacity: 1;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon {
+  background: rgba(26, 16, 32, 0.14) !important;
+  color: #1a1020 !important;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .secondary-action,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="signal"][data-theme="dark"] .project-actions .secondary-action .project-action-description,
+:root[data-app-theme="signal"][data-theme="dark"] .history-item,
+:root[data-app-theme="signal"][data-theme="dark"] .tray-icon-option,
+:root[data-app-theme="signal"][data-theme="dark"] .tray-icon-title,
+:root[data-app-theme="signal"][data-theme="dark"] .tray-icon-description,
+:root[data-app-theme="signal"][data-theme="dark"] .history-item:hover:not(:disabled) {
+  color: var(--text) !important;
 }
