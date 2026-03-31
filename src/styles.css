@@ -998,6 +998,16 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.app-theme-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.app-theme-toggle .toggle-button {
+  width: 100%;
+}
+
 .tray-icon-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

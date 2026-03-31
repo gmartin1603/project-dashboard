@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/radical.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Dashboard</title>
     <script type="module" src="/src/main.ts" defer></script>
@@ -156,10 +157,21 @@
 
           <section class="settings-section">
             <div class="settings-section-header">
-              <p class="section-label">Appearance</p>
-              <p class="settings-help">Use a fixed theme or follow your system preference.</p>
+              <p class="section-label">App Theme</p>
+              <p class="settings-help">Pick the dashboard styling language independently from light or dark mode.</p>
             </div>
-            <div class="theme-toggle" role="group" aria-label="Theme preference">
+            <div class="theme-toggle app-theme-toggle" role="group" aria-label="App theme">
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="default">Default</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="neon">Neon</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="ember">Ember</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="fjord">Fjord</button>
+              <button class="toggle-button" type="button" data-app-theme-option data-app-theme-value="signal">Signal</button>
+            </div>
+            <div class="settings-section-header">
+              <p class="section-label">Color Mode</p>
+              <p class="settings-help">Use a fixed light or dark mode, or follow your system preference.</p>
+            </div>
+            <div class="theme-toggle" role="group" aria-label="Color mode">
               <button id="theme-light" class="toggle-button" type="button">Light</button>
               <button id="theme-dark" class="toggle-button" type="button">Dark</button>
               <button id="theme-system" class="toggle-button" type="button">System</button>

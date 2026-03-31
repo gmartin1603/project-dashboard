@@ -1,0 +1,765 @@
+/* =========================================
+   BASE LAYOUT & ANIMATIONS
+   ========================================= */
+:root[data-app-theme="neon"] {
+  font-family: "Space Grotesk", "SF Pro Display", -apple-system, sans-serif !important;
+}
+
+:root[data-app-theme="neon"] body {
+  background-attachment: fixed !important;
+  animation: bgPulse 10s ease-in-out infinite alternate;
+}
+
+@keyframes bgPulse {
+  0% { background-position: 0% 0%, 0% 0%, 0 0, 0 0, 0 0; }
+  100% { background-position: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 0 0; }
+}
+
+:root[data-app-theme="neon"] .topbar-panel,
+:root[data-app-theme="neon"] .toolbar-panel,
+:root[data-app-theme="neon"] .results-header,
+:root[data-app-theme="neon"] .project-card,
+:root[data-app-theme="neon"] .empty-state,
+:root[data-app-theme="neon"] dialog {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 20px !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+:root[data-app-theme="neon"] .project-card {
+  min-height: 228px !important;
+  display: grid !important;
+  gap: 14px !important;
+  height: auto !important;
+  align-content: start !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), inset 0 0 5px var(--accent-soft) !important;
+}
+
+:root[data-app-theme="neon"] .project-grid[data-view-mode="compact"] .project-card {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+:root[data-app-theme="neon"] .project-card:hover {
+  transform: translateY(-5px) scale(1.02) !important;
+  z-index: 10;
+}
+
+:root[data-app-theme="neon"] h1,
+:root[data-app-theme="neon"] h2,
+:root[data-app-theme="neon"] .project-title {
+  font-family: "Space Grotesk", system-ui, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+:root[data-app-theme="neon"] button,
+:root[data-app-theme="neon"] input,
+:root[data-app-theme="neon"] select {
+  border-radius: 12px !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s ease !important;
+}
+
+:root[data-app-theme="neon"] .project-path,
+:root[data-app-theme="neon"] p.project-detail-value {
+  word-break: break-all !important;
+  padding: 6px 10px !important;
+  background: var(--inline-code-bg) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  font-family: "Cascadia Mono", monospace !important;
+  font-size: 0.8rem !important;
+}
+
+:root[data-app-theme="neon"] .project-footer {
+  margin-top: auto !important;
+}
+
+@media (min-width: 1024px) {
+  :root[data-app-theme="neon"] body {
+    overflow: hidden !important;
+  }
+
+  :root[data-app-theme="neon"] .app-shell {
+    display: grid !important;
+    grid-template-columns: 300px minmax(0, 1fr) !important;
+    gap: 16px !important;
+    padding: 20px !important;
+    max-width: 1500px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  :root[data-app-theme="neon"] .dashboard-sidebar {
+    min-height: 0 !important;
+    height: calc(100vh - 40px) !important;
+    display: grid !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 16px !important;
+    align-content: start !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 4px !important;
+  }
+
+  :root[data-app-theme="neon"] .topbar-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    padding: 20px !important;
+  }
+
+  :root[data-app-theme="neon"] .topbar-panel .root-summary {
+    width: 100% !important;
+  }
+
+  :root[data-app-theme="neon"] .topbar-panel h1 {
+    font-size: clamp(1.5rem, 3vw, 2rem) !important;
+    max-width: none !important;
+  }
+
+  :root[data-app-theme="neon"] .toolbar-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    padding: 20px !important;
+  }
+
+  :root[data-app-theme="neon"] .toolbar-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  :root[data-app-theme="neon"] .view-toggle {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  :root[data-app-theme="neon"] .view-toggle button {
+    flex: 1 !important;
+  }
+
+  :root[data-app-theme="neon"] .search-field {
+    width: 100% !important;
+  }
+
+  :root[data-app-theme="neon"] .search-field input {
+    width: 100% !important;
+  }
+
+  :root[data-app-theme="neon"] .status-message {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  :root[data-app-theme="neon"] .dashboard-main {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: calc(100vh - 40px) !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 16px !important;
+    overflow: hidden !important;
+  }
+
+  :root[data-app-theme="neon"] .results-header {
+    align-self: start !important;
+    margin: 0 !important;
+  }
+
+  :root[data-app-theme="neon"] .project-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    grid-auto-rows: max-content !important;
+    gap: 18px !important;
+    align-content: start !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 8px !important;
+    padding-bottom: 24px !important;
+  }
+}
+
+:root[data-app-theme="neon"] {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+
+  --page: #f8fafc;
+  --panel: rgba(255, 255, 255, 0.75);
+  --panel-strong: rgba(255, 255, 255, 0.95);
+  --panel-muted: rgba(241, 245, 249, 0.6);
+  --border: rgba(255, 105, 180, 0.3);
+  --border-strong: rgba(0, 210, 255, 0.5);
+  --text: #1e293b;
+  --muted: #64748b;
+  --accent: #ff007f;
+  --accent-strong: #00d2ff;
+  --accent-soft: rgba(255, 0, 127, 0.1);
+  --folder-soft: rgba(0, 210, 255, 0.1);
+  --git-soft: rgba(255, 0, 127, 0.1);
+  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  --page-line: rgba(255, 105, 180, 0.1);
+  --focus-outline: #00d2ff;
+  --button-hover-border: #ff007f;
+  --button-hover-shadow: 0 8px 20px rgba(255, 0, 127, 0.2);
+  --card-hover-border: #00d2ff;
+  --card-hover-shadow: 0 14px 40px rgba(0, 210, 255, 0.2);
+  --toggle-hover-bg: rgba(255, 0, 127, 0.1);
+  --modal-shadow: 0 24px 50px rgba(0, 0, 0, 0.15);
+  --modal-backdrop: rgba(255, 255, 255, 0.7);
+  --history-backdrop: rgba(255, 255, 255, 0.8);
+  --inline-code-bg: rgba(0, 210, 255, 0.1);
+  --folder-text: #ff007f;
+  --git-text: #0088ff;
+  --error: #ef4444;
+  --primary-button-text: #ffffff;
+}
+
+:root[data-app-theme="neon"] body {
+  background:
+    radial-gradient(circle at 15% 50%, rgba(255, 105, 180, 0.15), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(0, 210, 255, 0.15), transparent 25%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px, auto !important;
+}
+
+:root[data-app-theme="neon"] h1,
+:root[data-app-theme="neon"] h2,
+:root[data-app-theme="neon"] .project-title {
+  background-image: linear-gradient(to right, #ff007f, #00d2ff) !important;
+}
+
+:root[data-app-theme="neon"] button,
+:root[data-app-theme="neon"] input,
+:root[data-app-theme="neon"] select {
+  background: rgba(255, 255, 255, 0.6) !important;
+  color: #ff007f !important;
+  border: 1px solid var(--border) !important;
+}
+
+:root[data-app-theme="neon"] button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff007f, #00d2ff) !important;
+  color: white !important;
+}
+
+:root[data-app-theme="neon"] .project-card {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] {
+  background: #050505 !important;
+  color: #f1f5f9 !important;
+
+  --page: #000000;
+  --panel: rgba(15, 23, 42, 0.6);
+  --panel-strong: rgba(30, 41, 59, 0.8);
+  --panel-muted: rgba(255, 255, 255, 0.02);
+  --border: rgba(0, 255, 255, 0.2);
+  --border-strong: rgba(0, 255, 255, 0.5);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #00ffcc;
+  --accent-strong: #ff00ff;
+  --accent-soft: rgba(0, 255, 204, 0.1);
+  --folder-soft: rgba(255, 0, 255, 0.1);
+  --git-soft: rgba(0, 255, 255, 0.1);
+  --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  --page-line: rgba(0, 255, 204, 0.08);
+  --focus-outline: #ff00ff;
+  --button-hover-border: #00ffcc;
+  --button-hover-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+  --card-hover-border: #ff00ff;
+  --card-hover-shadow: 0 0 30px rgba(255, 0, 255, 0.25);
+  --toggle-hover-bg: rgba(0, 255, 204, 0.2);
+  --modal-shadow: 0 0 60px rgba(0, 255, 204, 0.2);
+  --modal-backdrop: rgba(0, 0, 0, 0.8);
+  --history-backdrop: rgba(0, 0, 0, 0.9);
+  --inline-code-bg: rgba(255, 0, 255, 0.15);
+  --folder-text: #ff00ff;
+  --git-text: #00ffcc;
+  --error: #ff3366;
+  --primary-button-text: #050505;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 15% 50%, rgba(0, 255, 204, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255, 0, 255, 0.08), transparent 25%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px, auto !important;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] h1,
+:root[data-app-theme="neon"][data-theme="dark"] h2,
+:root[data-app-theme="neon"][data-theme="dark"] .project-title {
+  background-image: linear-gradient(to right, #00ffcc, #ff00ff) !important;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] button,
+:root[data-app-theme="neon"][data-theme="dark"] input,
+:root[data-app-theme="neon"][data-theme="dark"] select {
+  background: rgba(0, 0, 0, 0.4) !important;
+  color: #00ffcc !important;
+  border: 1px solid var(--border) !important;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] button:hover:not(:disabled) {
+  background: rgba(0, 255, 204, 0.15) !important;
+  border-color: var(--button-hover-border) !important;
+  box-shadow: var(--button-hover-shadow) !important;
+  color: #fff !important;
+}
+
+:root[data-app-theme="neon"][data-theme="dark"] .project-card {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+:root[data-app-theme="ember"] {
+  font-family: "Trebuchet MS", "Aptos", sans-serif !important;
+  color: #2d2118;
+  background: #f4eadf;
+
+  --page: #f4eadf;
+  --panel: rgba(253, 248, 241, 0.94);
+  --panel-strong: #fffaf3;
+  --panel-muted: #efe1d2;
+  --border: #d8b89a;
+  --border-strong: #b57b47;
+  --text: #2d2118;
+  --muted: #755842;
+  --accent: #a04f24;
+  --accent-strong: #7c3217;
+  --accent-soft: rgba(160, 79, 36, 0.12);
+  --folder-soft: rgba(156, 103, 61, 0.12);
+  --git-soft: rgba(112, 80, 47, 0.12);
+  --shadow: 0 18px 40px rgba(92, 61, 34, 0.12);
+  --page-line: rgba(124, 50, 23, 0.06);
+  --focus-outline: rgba(160, 79, 36, 0.3);
+  --button-hover-border: rgba(124, 50, 23, 0.62);
+  --button-hover-shadow: 0 12px 24px rgba(124, 50, 23, 0.16);
+  --card-hover-border: rgba(124, 50, 23, 0.35);
+  --card-hover-shadow: 0 22px 34px rgba(92, 61, 34, 0.18);
+  --toggle-hover-bg: rgba(160, 79, 36, 0.08);
+  --modal-shadow: 0 28px 70px rgba(68, 42, 24, 0.2);
+  --modal-backdrop: rgba(49, 30, 16, 0.28);
+  --history-backdrop: rgba(49, 30, 16, 0.38);
+  --inline-code-bg: rgba(160, 79, 36, 0.08);
+  --folder-text: #915c2b;
+  --git-text: #6f4f2e;
+  --error: #9b2d20;
+  --primary-button-text: #fff7ef;
+}
+
+:root[data-app-theme="ember"] body {
+  background:
+    radial-gradient(circle at top left, rgba(210, 130, 73, 0.18), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(111, 79, 46, 0.14), transparent 30%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
+}
+
+:root[data-app-theme="ember"] .topbar-panel,
+:root[data-app-theme="ember"] .toolbar-panel,
+:root[data-app-theme="ember"] .results-header,
+:root[data-app-theme="ember"] .project-card,
+:root[data-app-theme="ember"] .empty-state,
+:root[data-app-theme="ember"] dialog {
+  background: linear-gradient(180deg, rgba(255, 250, 243, 0.98), rgba(248, 239, 228, 0.96));
+  border-radius: 14px !important;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+:root[data-app-theme="ember"] h1,
+:root[data-app-theme="ember"] h2,
+:root[data-app-theme="ember"] .project-title {
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text);
+}
+
+:root[data-app-theme="ember"] button,
+:root[data-app-theme="ember"] input,
+:root[data-app-theme="ember"] select {
+  border-radius: 10px !important;
+  background: var(--panel-strong) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-strong) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+
+:root[data-app-theme="ember"] button:hover:not(:disabled) {
+  background: var(--accent) !important;
+  color: var(--primary-button-text) !important;
+  border-color: var(--accent-strong) !important;
+  box-shadow: var(--button-hover-shadow) !important;
+}
+
+:root[data-app-theme="ember"] .project-card {
+  border-inline-start: 4px solid var(--accent);
+}
+
+:root[data-app-theme="ember"] .project-path,
+:root[data-app-theme="ember"] p.project-detail-value {
+  background: rgba(160, 79, 36, 0.08) !important;
+  border-color: rgba(124, 50, 23, 0.18) !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] {
+  color: #f2e4d6;
+  background: #1b1411;
+
+  --page: #1b1411;
+  --panel: rgba(38, 29, 24, 0.94);
+  --panel-strong: #2b211d;
+  --panel-muted: #231b17;
+  --border: #5e4739;
+  --border-strong: #b97a43;
+  --text: #f2e4d6;
+  --muted: #c6ab92;
+  --accent: #d18449;
+  --accent-strong: #efb47c;
+  --accent-soft: rgba(209, 132, 73, 0.14);
+  --folder-soft: rgba(209, 132, 73, 0.08);
+  --git-soft: rgba(239, 180, 124, 0.08);
+  --shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
+  --page-line: rgba(209, 132, 73, 0.08);
+  --focus-outline: rgba(239, 180, 124, 0.3);
+  --button-hover-border: rgba(239, 180, 124, 0.52);
+  --button-hover-shadow: 0 14px 28px rgba(209, 132, 73, 0.16);
+  --card-hover-border: rgba(239, 180, 124, 0.28);
+  --card-hover-shadow: 0 20px 34px rgba(0, 0, 0, 0.32);
+  --toggle-hover-bg: rgba(209, 132, 73, 0.12);
+  --modal-shadow: 0 32px 76px rgba(0, 0, 0, 0.48);
+  --modal-backdrop: rgba(10, 7, 6, 0.58);
+  --history-backdrop: rgba(10, 7, 6, 0.7);
+  --inline-code-bg: rgba(209, 132, 73, 0.12);
+  --folder-text: #efb47c;
+  --git-text: #f5ca9e;
+  --error: #ff9f80;
+  --primary-button-text: #170f0b;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(209, 132, 73, 0.14), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(239, 180, 124, 0.08), transparent 30%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px, auto !important;
+}
+
+:root[data-app-theme="ember"][data-theme="dark"] .topbar-panel,
+:root[data-app-theme="ember"][data-theme="dark"] .toolbar-panel,
+:root[data-app-theme="ember"][data-theme="dark"] .results-header,
+:root[data-app-theme="ember"][data-theme="dark"] .project-card,
+:root[data-app-theme="ember"][data-theme="dark"] .empty-state,
+:root[data-app-theme="ember"][data-theme="dark"] dialog {
+  background: linear-gradient(180deg, rgba(45, 34, 28, 0.98), rgba(34, 26, 22, 0.96));
+}
+
+:root[data-app-theme="fjord"] {
+  font-family: "Aptos", "Segoe UI", sans-serif !important;
+  color: #102235;
+  background: #edf6fb;
+
+  --page: #edf6fb;
+  --panel: rgba(244, 251, 255, 0.8);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --panel-muted: rgba(229, 240, 247, 0.78);
+  --border: rgba(109, 159, 183, 0.36);
+  --border-strong: rgba(47, 115, 147, 0.48);
+  --text: #102235;
+  --muted: #567082;
+  --accent: #2f7393;
+  --accent-strong: #1ba0a5;
+  --accent-soft: rgba(27, 160, 165, 0.12);
+  --folder-soft: rgba(47, 115, 147, 0.08);
+  --git-soft: rgba(27, 160, 165, 0.08);
+  --shadow: 0 20px 50px rgba(32, 78, 103, 0.12);
+  --page-line: rgba(47, 115, 147, 0.05);
+  --focus-outline: rgba(27, 160, 165, 0.24);
+  --button-hover-border: rgba(27, 160, 165, 0.44);
+  --button-hover-shadow: 0 12px 28px rgba(47, 115, 147, 0.18);
+  --card-hover-border: rgba(27, 160, 165, 0.26);
+  --card-hover-shadow: 0 22px 38px rgba(32, 78, 103, 0.16);
+  --toggle-hover-bg: rgba(27, 160, 165, 0.08);
+  --modal-shadow: 0 28px 72px rgba(20, 57, 77, 0.18);
+  --modal-backdrop: rgba(18, 44, 58, 0.24);
+  --history-backdrop: rgba(18, 44, 58, 0.34);
+  --inline-code-bg: rgba(47, 115, 147, 0.08);
+  --folder-text: #256b84;
+  --git-text: #1d8ca2;
+  --error: #b04e62;
+  --primary-button-text: #f6fbfe;
+}
+
+:root[data-app-theme="fjord"] body {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(66, 183, 212, 0.16), transparent 24%),
+    radial-gradient(circle at 85% 12%, rgba(100, 149, 237, 0.12), transparent 28%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    linear-gradient(180deg, #f3f9fc 0%, #e7f3f8 100%) !important;
+  background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
+}
+
+:root[data-app-theme="fjord"] .topbar-panel,
+:root[data-app-theme="fjord"] .toolbar-panel,
+:root[data-app-theme="fjord"] .results-header,
+:root[data-app-theme="fjord"] .project-card,
+:root[data-app-theme="fjord"] .empty-state,
+:root[data-app-theme="fjord"] dialog {
+  background: rgba(245, 252, 255, 0.76);
+  border-radius: 24px !important;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  box-shadow: var(--shadow);
+}
+
+:root[data-app-theme="fjord"] h1,
+:root[data-app-theme="fjord"] h2,
+:root[data-app-theme="fjord"] .project-title {
+  font-family: "Gill Sans", "Trebuchet MS", sans-serif !important;
+  letter-spacing: -0.045em !important;
+  background-image: linear-gradient(135deg, #2f7393, #1ba0a5) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+:root[data-app-theme="fjord"] button,
+:root[data-app-theme="fjord"] input,
+:root[data-app-theme="fjord"] select {
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(47, 115, 147, 0.22) !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em !important;
+}
+
+:root[data-app-theme="fjord"] button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2f7393, #1ba0a5) !important;
+  color: #f6fbfe !important;
+  border-color: transparent !important;
+  box-shadow: var(--button-hover-shadow) !important;
+}
+
+:root[data-app-theme="fjord"] .project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-hover-shadow);
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] {
+  color: #e7f4ff;
+  background: #09141d;
+
+  --page: #09141d;
+  --panel: rgba(14, 29, 41, 0.84);
+  --panel-strong: rgba(21, 38, 51, 0.94);
+  --panel-muted: rgba(17, 31, 43, 0.82);
+  --border: rgba(79, 125, 151, 0.34);
+  --border-strong: rgba(63, 183, 189, 0.42);
+  --text: #e7f4ff;
+  --muted: #98b5c8;
+  --accent: #68b3cc;
+  --accent-strong: #5dd3d8;
+  --accent-soft: rgba(93, 211, 216, 0.12);
+  --folder-soft: rgba(104, 179, 204, 0.08);
+  --git-soft: rgba(93, 211, 216, 0.08);
+  --shadow: 0 24px 54px rgba(0, 0, 0, 0.32);
+  --page-line: rgba(93, 211, 216, 0.06);
+  --focus-outline: rgba(93, 211, 216, 0.3);
+  --button-hover-border: rgba(93, 211, 216, 0.42);
+  --button-hover-shadow: 0 14px 28px rgba(93, 211, 216, 0.14);
+  --card-hover-border: rgba(93, 211, 216, 0.26);
+  --card-hover-shadow: 0 24px 40px rgba(0, 0, 0, 0.34);
+  --toggle-hover-bg: rgba(93, 211, 216, 0.1);
+  --modal-shadow: 0 32px 80px rgba(0, 0, 0, 0.46);
+  --modal-backdrop: rgba(4, 10, 15, 0.56);
+  --history-backdrop: rgba(4, 10, 15, 0.68);
+  --inline-code-bg: rgba(93, 211, 216, 0.08);
+  --folder-text: #89d6ea;
+  --git-text: #72ecf0;
+  --error: #f196aa;
+  --primary-button-text: #081018;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(93, 211, 216, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 12%, rgba(104, 179, 204, 0.08), transparent 28%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    linear-gradient(180deg, #0b1924 0%, #08121a 100%) !important;
+  background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px, auto !important;
+}
+
+:root[data-app-theme="fjord"][data-theme="dark"] .topbar-panel,
+:root[data-app-theme="fjord"][data-theme="dark"] .toolbar-panel,
+:root[data-app-theme="fjord"][data-theme="dark"] .results-header,
+:root[data-app-theme="fjord"][data-theme="dark"] .project-card,
+:root[data-app-theme="fjord"][data-theme="dark"] .empty-state,
+:root[data-app-theme="fjord"][data-theme="dark"] dialog {
+  background: rgba(14, 29, 41, 0.82);
+}
+
+:root[data-app-theme="signal"] {
+  font-family: "Verdana", "Geneva", sans-serif !important;
+  color: #1e2230;
+  background: #fff8ea;
+
+  --page: #fff8ea;
+  --panel: rgba(255, 251, 240, 0.96);
+  --panel-strong: #fffdf7;
+  --panel-muted: #fff1c9;
+  --border: #f1c35e;
+  --border-strong: #d95d39;
+  --text: #1e2230;
+  --muted: #67614f;
+  --accent: #d95d39;
+  --accent-strong: #f1c35e;
+  --accent-soft: rgba(217, 93, 57, 0.1);
+  --folder-soft: rgba(241, 195, 94, 0.14);
+  --git-soft: rgba(217, 93, 57, 0.14);
+  --shadow: 8px 8px 0 rgba(30, 34, 48, 0.14);
+  --page-line: rgba(217, 93, 57, 0.06);
+  --focus-outline: rgba(217, 93, 57, 0.24);
+  --button-hover-border: rgba(30, 34, 48, 0.85);
+  --button-hover-shadow: 4px 4px 0 rgba(30, 34, 48, 0.22);
+  --card-hover-border: rgba(30, 34, 48, 0.85);
+  --card-hover-shadow: 10px 10px 0 rgba(30, 34, 48, 0.18);
+  --toggle-hover-bg: rgba(217, 93, 57, 0.08);
+  --modal-shadow: 12px 12px 0 rgba(30, 34, 48, 0.22);
+  --modal-backdrop: rgba(30, 34, 48, 0.22);
+  --history-backdrop: rgba(30, 34, 48, 0.3);
+  --inline-code-bg: rgba(241, 195, 94, 0.24);
+  --folder-text: #a76620;
+  --git-text: #b63f26;
+  --error: #b21e2f;
+  --primary-button-text: #fff9f2;
+}
+
+:root[data-app-theme="signal"] body {
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 24px, rgba(217, 93, 57, 0.045) 24px 48px),
+    radial-gradient(circle at top right, rgba(241, 195, 94, 0.22), transparent 24%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: auto, 100% 100%, 40px 40px, 40px 40px, auto !important;
+}
+
+:root[data-app-theme="signal"] .topbar-panel,
+:root[data-app-theme="signal"] .toolbar-panel,
+:root[data-app-theme="signal"] .results-header,
+:root[data-app-theme="signal"] .project-card,
+:root[data-app-theme="signal"] .empty-state,
+:root[data-app-theme="signal"] dialog {
+  background: var(--panel);
+  border-radius: 18px !important;
+  border: 2px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+:root[data-app-theme="signal"] h1,
+:root[data-app-theme="signal"] h2,
+:root[data-app-theme="signal"] .project-title {
+  font-family: "Franklin Gothic Medium", "Arial Narrow", sans-serif !important;
+  text-transform: uppercase;
+  letter-spacing: -0.045em !important;
+  color: var(--text) !important;
+}
+
+:root[data-app-theme="signal"] button,
+:root[data-app-theme="signal"] input,
+:root[data-app-theme="signal"] select {
+  border-radius: 12px !important;
+  border: 2px solid var(--text) !important;
+  background: var(--panel-strong) !important;
+  color: var(--text) !important;
+  box-shadow: 4px 4px 0 rgba(30, 34, 48, 0.16) !important;
+}
+
+:root[data-app-theme="signal"] button:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(30, 34, 48, 0.16) !important;
+  background: var(--accent) !important;
+  color: var(--primary-button-text) !important;
+}
+
+:root[data-app-theme="signal"] .project-card {
+  border-width: 2px;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] {
+  color: #f8f3dc;
+  background: #151724;
+
+  --page: #151724;
+  --panel: rgba(28, 31, 47, 0.96);
+  --panel-strong: #20243a;
+  --panel-muted: #1a1d2d;
+  --border: #f1c35e;
+  --border-strong: #ff7b54;
+  --text: #f8f3dc;
+  --muted: #d8cea2;
+  --accent: #ff7b54;
+  --accent-strong: #ffd166;
+  --accent-soft: rgba(255, 123, 84, 0.14);
+  --folder-soft: rgba(255, 209, 102, 0.08);
+  --git-soft: rgba(255, 123, 84, 0.08);
+  --shadow: 10px 10px 0 rgba(0, 0, 0, 0.34);
+  --page-line: rgba(255, 123, 84, 0.06);
+  --focus-outline: rgba(255, 123, 84, 0.28);
+  --button-hover-border: rgba(255, 209, 102, 0.84);
+  --button-hover-shadow: 4px 4px 0 rgba(0, 0, 0, 0.28);
+  --card-hover-border: rgba(255, 209, 102, 0.84);
+  --card-hover-shadow: 12px 12px 0 rgba(0, 0, 0, 0.26);
+  --toggle-hover-bg: rgba(255, 123, 84, 0.12);
+  --modal-shadow: 12px 12px 0 rgba(0, 0, 0, 0.34);
+  --modal-backdrop: rgba(6, 7, 13, 0.56);
+  --history-backdrop: rgba(6, 7, 13, 0.68);
+  --inline-code-bg: rgba(255, 209, 102, 0.18);
+  --folder-text: #ffd166;
+  --git-text: #ff9776;
+  --error: #ff7b8d;
+  --primary-button-text: #1b1020;
+}
+
+:root[data-app-theme="signal"][data-theme="dark"] body {
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 24px, rgba(255, 123, 84, 0.04) 24px 48px),
+    radial-gradient(circle at top right, rgba(255, 209, 102, 0.14), transparent 24%),
+    linear-gradient(var(--page-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--page-line) 1px, transparent 1px),
+    var(--page) !important;
+  background-size: auto, 100% 100%, 40px 40px, 40px 40px, auto !important;
+}
