@@ -20,6 +20,7 @@ type AppSettings = {
   preferredTerminal: string;
   trayIcon: TrayIconName;
   cardActions: CardActionName[];
+  layout: LayoutName;
 };
 
 type GitCommitEntry = {
@@ -55,6 +56,7 @@ type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode";
 type TrayIconName = "grid" | "orbit" | "stacks";
 type CardActionName = "workspace" | "folder" | "terminal" | "opencode" | "git" | "none";
+type LayoutName = "standard" | "sidebar-dock";
 type TechIconName =
   | "node"
   | "bun"
@@ -220,6 +222,7 @@ let projectRootDefaultEl: HTMLElement;
 let preferredTerminalSelectEl: HTMLSelectElement;
 let trayIconOptionsEl: HTMLElement;
 let cardActionSelectEls: HTMLSelectElement[] = [];
+let layoutButtonEls: HTMLButtonElement[] = [];
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
 let appThemeButtonEls: HTMLButtonElement[] = [];
@@ -327,6 +330,7 @@ function syncSettingsUi() {
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
   syncCardActionSelects();
   syncTrayIconToggle();
+  applyLayout();
 }
 
 function syncCardActionSelects() {
@@ -1110,6 +1114,18 @@ function applyAppTheme() {
   }
 }
 
+function applyLayout() {
+  const layout = state.settings?.layout ?? "standard";
+  document.documentElement.dataset.layout = layout === "sidebar-dock" ? "sidebar" : "standard";
+
+  for (const button of layoutButtonEls) {
+    const buttonLayout = button.dataset.layoutValue;
+    const isActive = buttonLayout === layout;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
 function setColorSchemeMode(colorSchemeMode: ColorSchemeMode) {
   state.colorSchemeMode = colorSchemeMode;
   window.localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, state.colorSchemeMode);
@@ -1232,6 +1248,18 @@ async function saveCardActions(cardActions: CardActionName[]) {
   }
 }
 
+async function saveLayout(layout: LayoutName) {
+  setSettingsStatus("Saving layout...");
+
+  try {
+    state.settings = await invoke<AppSettings>("update_layout", { layout });
+    syncSettingsUi();
+    setSettingsStatus("Layout updated.");
+  } catch (error) {
+    setSettingsStatus(String(error), true);
+  }
+}
+
 function shouldShowTrayHint() {
   return window.localStorage.getItem(TRAY_HINT_DISMISSED_KEY) !== "true";
 }
@@ -1267,6 +1295,7 @@ function openSettings() {
   projectRootInputEl.value = state.settings.projectRoot;
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
   syncCardActionSelects();
+  applyLayout();
   setSettingsStatus("");
   settingsModalEl.showModal();
 }
@@ -1372,6 +1401,7 @@ window.addEventListener("DOMContentLoaded", () => {
   preferredTerminalSelectEl = document.querySelector("#preferred-terminal-select") as HTMLSelectElement;
   trayIconOptionsEl = document.querySelector("#tray-icon-options") as HTMLElement;
   cardActionSelectEls = Array.from(document.querySelectorAll("[data-card-action-slot]")) as HTMLSelectElement[];
+  layoutButtonEls = Array.from(document.querySelectorAll("[data-layout-option]")) as HTMLButtonElement[];
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
   appThemeButtonEls = Array.from(document.querySelectorAll("[data-app-theme-option]")) as HTMLButtonElement[];
@@ -1432,6 +1462,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (isAppTheme(nextTheme)) {
         setAppTheme(nextTheme);
+      }
+    });
+  }
+
+  for (const button of layoutButtonEls) {
+    button.addEventListener("click", async () => {
+      const nextLayout = button.dataset.layoutValue;
+
+      if (isLayoutName(nextLayout)) {
+        await saveLayout(nextLayout);
       }
     });
   }
@@ -1524,4 +1564,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
 function isCardActionName(value: string): value is CardActionName {
   return CARD_ACTION_OPTIONS.some((option) => option.name === value);
+}
+
+function isLayoutName(value: string | undefined): value is LayoutName {
+  return value === "standard" || value === "sidebar-dock";
 }

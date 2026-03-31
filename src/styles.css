@@ -108,6 +108,16 @@ body.modal-open {
   gap: 12px;
 }
 
+.dashboard-layout-controls,
+.dashboard-layout-main {
+  display: grid;
+  gap: 12px;
+}
+
+.project-grid-scroll {
+  min-width: 0;
+}
+
 .topbar-panel,
 .toolbar-panel,
 .results-header,
@@ -1120,6 +1130,265 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+@media (min-width: 1024px) {
+  :root[data-layout="standard"] .app-shell {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+    gap: 16px;
+    max-width: 1440px;
+    width: min(100% - 28px, 1440px);
+  }
+
+  :root[data-layout="standard"] .dashboard-layout-controls,
+  :root[data-layout="standard"] .dashboard-layout-main {
+    gap: 16px;
+  }
+
+  :root[data-layout="standard"] .dashboard-layout-controls {
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+    grid-column: 1 / -1;
+  }
+
+  :root[data-layout="standard"] .dashboard-layout-main {
+    grid-column: 1 / -1;
+  }
+
+  :root[data-layout="standard"] .topbar-panel {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+
+  :root[data-layout="standard"] .topbar-panel h1 {
+    max-width: none;
+  }
+
+  :root[data-layout="standard"] .root-summary {
+    width: 100%;
+  }
+
+  :root[data-layout="standard"] .toolbar-panel {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+  }
+
+  :root[data-layout="standard"] .toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  :root[data-layout="standard"] #settings-button,
+  :root[data-layout="standard"] #refresh-button,
+  :root[data-layout="standard"] .stats-strip,
+  :root[data-layout="standard"] .view-toggle {
+    width: 100%;
+  }
+
+  :root[data-layout="standard"] .view-toggle {
+    display: flex;
+  }
+
+  :root[data-layout="standard"] .view-toggle button {
+    flex: 1;
+  }
+
+  :root[data-layout="standard"] .stats-strip {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-layout="standard"] .project-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+
+  :root[data-layout="sidebar"] body {
+    overflow: hidden;
+  }
+
+  :root[data-layout="sidebar"] .app-shell {
+    display: grid;
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+    gap: 16px;
+    max-width: 1500px;
+    width: min(100% - 28px, 1500px);
+    height: calc(100vh - 52px);
+    align-items: start;
+  }
+
+  :root[data-layout="sidebar"] .dashboard-layout-controls {
+    min-height: 0;
+    align-content: start;
+    align-self: stretch;
+  }
+
+  :root[data-layout="sidebar"] .dashboard-layout-main {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-self: stretch;
+    overflow: hidden;
+  }
+
+  :root[data-layout="sidebar"] .topbar-panel {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+
+  :root[data-layout="sidebar"] .topbar-panel h1 {
+    max-width: none;
+    font-size: clamp(1.65rem, 2.8vw, 2.35rem);
+  }
+
+  :root[data-layout="sidebar"] .root-summary {
+    width: 100%;
+  }
+
+  :root[data-layout="sidebar"] .toolbar-panel {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+
+  :root[data-layout="sidebar"] .toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  :root[data-layout="sidebar"] #settings-button,
+  :root[data-layout="sidebar"] #refresh-button,
+  :root[data-layout="sidebar"] .stats-strip,
+  :root[data-layout="sidebar"] .view-toggle {
+    width: 100%;
+  }
+
+  :root[data-layout="sidebar"] .view-toggle {
+    display: flex;
+  }
+
+  :root[data-layout="sidebar"] .view-toggle button {
+    flex: 1;
+  }
+
+  :root[data-layout="sidebar"] .stats-strip {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-layout="sidebar"] .status-message {
+    align-self: end;
+    padding-bottom: 6px;
+  }
+
+  :root[data-layout="sidebar"] .topbar-panel,
+  :root[data-layout="sidebar"] .toolbar-panel,
+  :root[data-layout="sidebar"] .status-message,
+  :root[data-layout="sidebar"] .results-header,
+  :root[data-layout="sidebar"] .dashboard-layout-main,
+  :root[data-layout="sidebar"] .project-grid-scroll,
+  :root[data-layout="sidebar"] .project-grid {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  :root[data-layout="sidebar"] .project-grid-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+    padding-bottom: 24px;
+  }
+
+  :root[data-layout="sidebar"] .project-grid {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 18px;
+    align-content: start;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1260px) {
+  :root[data-layout="standard"] .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-layout="standard"] .dashboard-layout-controls {
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-layout="standard"] .topbar-panel {
+    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr);
+  }
+
+  :root[data-layout="standard"] .toolbar-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  :root[data-layout="standard"] .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+  }
+
+  :root[data-layout="standard"] #settings-button,
+  :root[data-layout="standard"] #refresh-button,
+  :root[data-layout="standard"] .stats-strip,
+  :root[data-layout="standard"] .view-toggle {
+    width: auto;
+  }
+
+  :root[data-layout="standard"] .stats-strip {
+    display: flex;
+  }
+
+  :root[data-layout="sidebar"] body {
+    overflow: auto;
+  }
+
+  :root[data-layout="sidebar"] .app-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  :root[data-layout="sidebar"] .dashboard-layout-main {
+    grid-template-rows: auto;
+  }
+
+  :root[data-layout="sidebar"] .topbar-panel {
+    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr);
+  }
+
+  :root[data-layout="sidebar"] .toolbar-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  :root[data-layout="sidebar"] .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+  }
+
+  :root[data-layout="sidebar"] #settings-button,
+  :root[data-layout="sidebar"] #refresh-button,
+  :root[data-layout="sidebar"] .stats-strip,
+  :root[data-layout="sidebar"] .view-toggle {
+    width: auto;
+  }
+
+  :root[data-layout="sidebar"] .stats-strip {
+    display: flex;
+  }
+
+  :root[data-layout="sidebar"] .project-grid {
+    max-height: none;
+  }
+
+  :root[data-layout="sidebar"] .project-grid-scroll {
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
 .empty-state h2 {
   margin: 0 0 10px;
 }
@@ -1128,6 +1397,11 @@ button:disabled {
   .app-shell {
     width: min(100% - 18px, 1120px);
     margin: 10px auto 20px;
+  }
+
+  .dashboard-layout-controls,
+  .dashboard-layout-main {
+    gap: 10px;
   }
 
   .topbar-panel,

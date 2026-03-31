@@ -11,67 +11,66 @@
 
   <body>
     <main class="app-shell">
-      <header class="topbar-panel">
-        <div class="topbar-copy">
-          <div class="topbar-heading">
-            <span class="app-brand-icon" id="app-brand-icon" aria-hidden="true"></span>
-            <p class="eyebrow">Project Dashboard</p>
-              <button id="app-version" class="version-badge" type="button" aria-label="Open release notes">Version 0.4.4</button>
+      <div class="dashboard-layout-controls">
+        <header class="topbar-panel">
+          <div class="topbar-copy">
+            <div class="topbar-heading">
+              <span class="app-brand-icon" id="app-brand-icon" aria-hidden="true"></span>
+              <p class="eyebrow">Project Dashboard</p>
+                <button id="app-version" class="version-badge" type="button" aria-label="Open release notes">Version 0.4.4</button>
+            </div>
+            <h1>Launch your local projects fast.</h1>
           </div>
-          <h1>Launch your local projects fast.</h1>
-          <p class="hero-copy">
-            A tighter launcher for your local project folders.
-            Search, scan, and reopen the exact project or workspace you want.
-          </p>
-        </div>
 
-        <div class="root-summary">
-          <p class="summary-label">Source Folder</p>
-          <code id="project-root-display">Loading...</code>
-          <p class="summary-note">
-            Workspace-backed projects stay near the top so your most prepared setups are
-            quickest to reopen.
-          </p>
-        </div>
-      </header>
-
-      <section class="toolbar-panel">
-        <label class="search-field" for="search-input">
-          <span>Find a project</span>
-          <input
-            id="search-input"
-            type="search"
-            placeholder="Filter by name, folder, or workspace"
-            autocomplete="off"
-          />
-        </label>
-
-        <div class="toolbar-actions">
-          <button id="settings-button" type="button">
-            <span class="toolbar-app-icon" id="toolbar-app-icon" aria-hidden="true"></span>
-            <span class="toolbar-button-label">Settings</span>
-          </button>
-          <div class="view-toggle" role="group" aria-label="Card density">
-            <button id="view-detailed" class="toggle-button is-active" type="button">Detailed</button>
-            <button id="view-compact" class="toggle-button" type="button">Compact</button>
+          <div class="root-summary">
+            <p class="summary-label">Source Folder</p>
+            <code id="project-root-display">Loading...</code>
           </div>
-          <div class="stats-strip">
-            <span id="project-count">0 visible</span>
-            <span id="workspace-count">0 with workspaces</span>
-          </div>
-          <button id="refresh-button" type="button">Refresh</button>
-        </div>
-      </section>
+        </header>
 
-      <p class="status-message" id="status-message" data-state="default"></p>
-      <section class="results-header">
-        <div>
-          <p class="section-label">Projects</p>
-          <h2>Ready To Launch</h2>
+        <section class="toolbar-panel">
+          <label class="search-field" for="search-input">
+            <span>Find a project</span>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Filter by name, folder, or workspace"
+              autocomplete="off"
+            />
+          </label>
+
+          <div class="toolbar-actions">
+            <button id="settings-button" type="button">
+              <span class="toolbar-app-icon" id="toolbar-app-icon" aria-hidden="true"></span>
+              <span class="toolbar-button-label">Settings</span>
+            </button>
+            <div class="view-toggle" role="group" aria-label="Card density">
+              <button id="view-detailed" class="toggle-button is-active" type="button">Detailed</button>
+              <button id="view-compact" class="toggle-button" type="button">Compact</button>
+            </div>
+            <div class="stats-strip">
+              <span id="project-count">0 visible</span>
+              <span id="workspace-count">0 with workspaces</span>
+            </div>
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
+        </section>
+
+        <p class="status-message" id="status-message" data-state="default"></p>
+      </div>
+
+      <div class="dashboard-layout-main">
+        <section class="results-header">
+          <div>
+            <p class="section-label">Projects</p>
+            <h2>Ready To Launch</h2>
+          </div>
+          <p class="results-note">Minimal grid with workspace-first sorting.</p>
+        </section>
+        <div class="project-grid-scroll">
+          <section class="project-grid" id="project-grid" aria-live="polite"></section>
         </div>
-        <p class="results-note">Minimal grid with workspace-first sorting.</p>
-      </section>
-      <section class="project-grid" id="project-grid" aria-live="polite"></section>
+      </div>
 
       <dialog class="history-modal" id="history-modal">
         <div class="history-modal-header">
@@ -175,6 +174,14 @@
               <button id="theme-light" class="toggle-button" type="button">Light</button>
               <button id="theme-dark" class="toggle-button" type="button">Dark</button>
               <button id="theme-system" class="toggle-button" type="button">System</button>
+            </div>
+            <div class="settings-section-header">
+              <p class="section-label">Layout</p>
+              <p class="settings-help">Choose between the current standard layout and a two-column desktop sidebar layout.</p>
+            </div>
+            <div class="theme-toggle" role="group" aria-label="Layout mode">
+              <button class="toggle-button" type="button" data-layout-option data-layout-value="standard">Standard</button>
+              <button class="toggle-button" type="button" data-layout-option data-layout-value="sidebar-dock">Sidebar</button>
             </div>
             <div class="settings-section-header">
               <p class="section-label">Tray Icon</p>

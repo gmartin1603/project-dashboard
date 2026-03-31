@@ -251,145 +251,17 @@
 
 @media (min-width: 1024px) {
   :root[data-app-theme="neon"] .app-shell {
-    display: grid !important;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr) !important;
-    grid-template-areas:
-      "topbar toolbar"
-      "status status"
-      "results results"
-      "projects projects" !important;
-    gap: 16px !important;
     padding: 20px !important;
-    max-width: 1440px !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    min-height: 100vh !important;
     box-sizing: border-box !important;
-  }
-
-  :root[data-app-theme="neon"] .topbar-panel {
-    grid-area: topbar !important;
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 14px !important;
-    padding: 20px !important;
-    align-content: start !important;
-  }
-
-  :root[data-app-theme="neon"] .topbar-panel .root-summary {
-    width: 100% !important;
   }
 
   :root[data-app-theme="neon"] .topbar-panel h1 {
     font-size: clamp(1.5rem, 3vw, 2rem) !important;
-    max-width: none !important;
-  }
-
-  :root[data-app-theme="neon"] .toolbar-panel {
-    grid-area: toolbar !important;
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 14px !important;
-    padding: 20px !important;
-    align-content: start !important;
-  }
-
-  :root[data-app-theme="neon"] .toolbar-actions {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    align-items: stretch !important;
-    gap: 10px !important;
-  }
-
-  :root[data-app-theme="neon"] #settings-button,
-  :root[data-app-theme="neon"] #refresh-button,
-  :root[data-app-theme="neon"] .stats-strip,
-  :root[data-app-theme="neon"] .view-toggle {
-    width: 100% !important;
-  }
-
-  :root[data-app-theme="neon"] .stats-strip {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-  }
-
-  :root[data-app-theme="neon"] .view-toggle {
-    display: flex !important;
-    width: 100% !important;
-  }
-
-  :root[data-app-theme="neon"] .view-toggle button {
-    flex: 1 !important;
-  }
-
-  :root[data-app-theme="neon"] .search-field {
-    width: 100% !important;
-  }
-
-  :root[data-app-theme="neon"] .search-field input {
-    width: 100% !important;
   }
 
   :root[data-app-theme="neon"] .status-message {
-    grid-area: status !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
-  }
-
-  :root[data-app-theme="neon"] .results-header {
-    grid-area: results !important;
-    align-self: start !important;
-    margin: 0 !important;
-  }
-
-  :root[data-app-theme="neon"] .project-grid {
-    grid-area: projects !important;
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-    grid-auto-rows: max-content !important;
-    gap: 18px !important;
-    align-content: start !important;
-    min-height: 0 !important;
-    padding-bottom: 24px !important;
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1260px) {
-  :root[data-app-theme="neon"] .app-shell {
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "topbar"
-      "toolbar"
-      "status"
-      "results"
-      "projects" !important;
-  }
-
-  :root[data-app-theme="neon"] .topbar-panel {
-    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr) !important;
-  }
-
-  :root[data-app-theme="neon"] .toolbar-panel {
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    align-items: end !important;
-  }
-
-  :root[data-app-theme="neon"] .toolbar-actions {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    grid-template-columns: none !important;
-    width: auto !important;
-  }
-
-  :root[data-app-theme="neon"] #settings-button,
-  :root[data-app-theme="neon"] #refresh-button,
-  :root[data-app-theme="neon"] .stats-strip,
-  :root[data-app-theme="neon"] .view-toggle {
-    width: auto !important;
-  }
-
-  :root[data-app-theme="neon"] .stats-strip {
-    display: flex !important;
   }
 }
 

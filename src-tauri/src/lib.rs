@@ -28,6 +28,7 @@ struct AppSettingsResponse {
     preferred_terminal: String,
     tray_icon: String,
     card_actions: Vec<String>,
+    layout: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -39,6 +40,8 @@ struct StoredSettings {
     tray_icon: String,
     #[serde(default = "default_card_actions")]
     card_actions: Vec<String>,
+    #[serde(default = "default_layout")]
+    layout: String,
 }
 
 const TRAY_ICON_ID: &str = "project-dashboard-tray";
@@ -138,6 +141,10 @@ fn default_card_actions() -> Vec<String> {
     ]
 }
 
+fn default_layout() -> String {
+    "standard".to_string()
+}
+
 fn supported_terminals() -> &'static [&'static str] {
     &[
         "auto",
@@ -162,6 +169,10 @@ fn supported_tray_icons() -> &'static [&'static str] {
 
 fn supported_card_actions() -> &'static [&'static str] {
     &["workspace", "folder", "terminal", "opencode", "git", "none"]
+}
+
+fn supported_layouts() -> &'static [&'static str] {
+    &["standard", "sidebar-dock"]
 }
 
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
@@ -202,6 +213,20 @@ fn normalize_card_actions(values: &[String]) -> Result<Vec<String>, String> {
     }
 
     Ok(normalized)
+}
+
+fn normalize_layout(value: &str) -> Result<String, String> {
+    let normalized = value.trim().to_lowercase();
+
+    if normalized == "default" || normalized == "sidebar" {
+        return Ok("standard".to_string());
+    }
+
+    if supported_layouts().contains(&normalized.as_str()) {
+        Ok(normalized)
+    } else {
+        Err(format!("Unsupported layout: {value}"))
+    }
 }
 
 fn tray_icon_image(icon_name: &str) -> Image<'static> {
@@ -444,6 +469,7 @@ fn load_settings() -> Result<StoredSettings, String> {
             preferred_terminal: default_preferred_terminal(),
             tray_icon: default_tray_icon(),
             card_actions: default_card_actions(),
+            layout: default_layout(),
         });
     }
 
@@ -461,6 +487,7 @@ fn load_settings() -> Result<StoredSettings, String> {
                 .unwrap_or_else(|_| default_tray_icon()),
             card_actions: normalize_card_actions(&settings.card_actions)
                 .unwrap_or_else(|_| default_card_actions()),
+            layout: normalize_layout(&settings.layout).unwrap_or_else(|_| default_layout()),
         })
     } else {
         Ok(StoredSettings {
@@ -471,6 +498,7 @@ fn load_settings() -> Result<StoredSettings, String> {
                 .unwrap_or_else(|_| default_tray_icon()),
             card_actions: normalize_card_actions(&settings.card_actions)
                 .unwrap_or_else(|_| default_card_actions()),
+            layout: normalize_layout(&settings.layout).unwrap_or_else(|_| default_layout()),
         })
     }
 }
@@ -520,6 +548,7 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
         preferred_terminal: settings.preferred_terminal,
         tray_icon: settings.tray_icon,
         card_actions: settings.card_actions,
+        layout: settings.layout,
     })
 }
 
@@ -584,6 +613,15 @@ fn update_tray_icon(app: AppHandle, tray_icon: String) -> Result<AppSettingsResp
 fn update_card_actions(card_actions: Vec<String>) -> Result<AppSettingsResponse, String> {
     let mut settings = load_settings()?;
     settings.card_actions = normalize_card_actions(&card_actions)?;
+    save_settings(&settings)?;
+
+    app_settings_response()
+}
+
+#[tauri::command]
+fn update_layout(layout: String) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings()?;
+    settings.layout = normalize_layout(&layout)?;
     save_settings(&settings)?;
 
     app_settings_response()
@@ -1313,6 +1351,7 @@ pub fn run() {
             update_preferred_terminal,
             update_tray_icon,
             update_card_actions,
+            update_layout,
             list_projects,
             open_in_code,
             open_in_terminal,
