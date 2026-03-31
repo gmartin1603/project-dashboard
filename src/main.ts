@@ -19,6 +19,7 @@ type AppSettings = {
   defaultProjectRoot: string;
   preferredTerminal: string;
   trayIcon: TrayIconName;
+  cardActions: CardActionName[];
 };
 
 type GitCommitEntry = {
@@ -53,6 +54,7 @@ type GitCommitDetails = {
 type ViewMode = "detailed" | "compact";
 type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode";
 type TrayIconName = "grid" | "orbit" | "stacks";
+type CardActionName = "workspace" | "folder" | "terminal" | "opencode" | "git" | "none";
 type TechIconName =
   | "node"
   | "bun"
@@ -111,6 +113,43 @@ const APP_THEME_OPTIONS = [
   label: string;
 }>;
 
+const CARD_ACTION_OPTIONS = [
+  {
+    name: "workspace",
+    label: "VS Code Workspace",
+    description: "Open the saved workspace in VS Code when available.",
+  },
+  {
+    name: "folder",
+    label: "VS Code Folder",
+    description: "Open the project folder in VS Code.",
+  },
+  {
+    name: "terminal",
+    label: "Terminal",
+    description: "Open the project folder in your preferred terminal.",
+  },
+  {
+    name: "opencode",
+    label: "Opencode",
+    description: "Open the project folder in Opencode.",
+  },
+  {
+    name: "git",
+    label: "Git History",
+    description: "Open recent git history for repositories.",
+  },
+  {
+    name: "none",
+    label: "None",
+    description: "Leave this footer slot empty.",
+  },
+] as const satisfies ReadonlyArray<{
+  name: CardActionName;
+  label: string;
+  description: string;
+}>;
+
 type ColorSchemeMode = "light" | "dark" | "system";
 type AppTheme = (typeof APP_THEME_OPTIONS)[number]["name"];
 
@@ -118,35 +157,6 @@ type ReleaseNoteEntry = {
   version: string;
   items: string[];
 };
-
-const RELEASE_NOTES: ReleaseNoteEntry[] = [
-  {
-    version: "0.2.3",
-    items: [
-      "Made the app version visible in the dashboard header.",
-      "Fixed launcher behavior so terminal and VS Code opens do not stall the packaged app.",
-      "Moved the updated timestamp onto its own bottom row on project cards.",
-    ],
-  },
-  {
-    version: "0.2.2",
-    items: [
-      "Added one-click creation for default VS Code workspace files from project cards.",
-      "Added terminal launch actions on project cards with preferred terminal selection in settings.",
-      "Fixed terminal launches so they open in the selected project directory.",
-      "Fixed VS Code launches so shell-defined launch commands and environment setup work reliably.",
-    ],
-  },
-  {
-    version: "0.2.0",
-    items: [
-      "Added configurable project root settings.",
-      "Added tray refresh and launch-on-login actions.",
-      "Added first-run tray guidance with a permanent dismiss option.",
-      "Improved repository metadata and open-source documentation.",
-    ],
-  },
-];
 
 const state = {
   projects: [] as Project[],
@@ -209,6 +219,7 @@ let projectRootBrowseEl: HTMLButtonElement;
 let projectRootDefaultEl: HTMLElement;
 let preferredTerminalSelectEl: HTMLSelectElement;
 let trayIconOptionsEl: HTMLElement;
+let cardActionSelectEls: HTMLSelectElement[] = [];
 let settingsStatusEl: HTMLElement;
 let projectRootResetEl: HTMLButtonElement;
 let appThemeButtonEls: HTMLButtonElement[] = [];
@@ -237,10 +248,18 @@ function setAppVersion(version: string) {
   appVersionEl.textContent = `Version ${version}`;
 }
 
-function renderReleaseNotes() {
+function renderReleaseNotes(entries: ReleaseNoteEntry[]) {
   releaseNotesListEl.innerHTML = "";
 
-  for (const entry of RELEASE_NOTES) {
+  if (entries.length === 0) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "release-notes-empty";
+    emptyState.textContent = "No tagged releases found yet.";
+    releaseNotesListEl.append(emptyState);
+    return;
+  }
+
+  for (const entry of entries) {
     const section = document.createElement("section");
     section.className = "release-note-section";
 
@@ -251,14 +270,40 @@ function renderReleaseNotes() {
     const list = document.createElement("ul");
     list.className = "release-note-items";
 
-    for (const itemText of entry.items) {
-      const item = document.createElement("li");
-      item.textContent = itemText;
-      list.append(item);
+    if (entry.items.length === 0) {
+      const emptyItem = document.createElement("li");
+      emptyItem.textContent = "No commit subjects found for this release.";
+      list.append(emptyItem);
+    } else {
+      for (const itemText of entry.items) {
+        const item = document.createElement("li");
+        item.textContent = itemText;
+        list.append(item);
+      }
     }
 
     section.append(heading, list);
     releaseNotesListEl.append(section);
+  }
+}
+
+async function loadReleaseNotes() {
+  releaseNotesListEl.innerHTML = "";
+
+  const loadingState = document.createElement("p");
+  loadingState.className = "release-notes-empty";
+  loadingState.textContent = "Loading release notes...";
+  releaseNotesListEl.append(loadingState);
+
+  try {
+    const entries = await invoke<ReleaseNoteEntry[]>("get_release_notes");
+    renderReleaseNotes(entries);
+  } catch (error) {
+    releaseNotesListEl.innerHTML = "";
+    const errorState = document.createElement("p");
+    errorState.className = "release-notes-empty";
+    errorState.textContent = `Could not load release notes: ${String(error)}`;
+    releaseNotesListEl.append(errorState);
   }
 }
 
@@ -280,7 +325,16 @@ function syncSettingsUi() {
   projectRootInputEl.value = state.settings.projectRoot;
   projectRootDefaultEl.textContent = `Default root: ${state.settings.defaultProjectRoot}`;
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
+  syncCardActionSelects();
   syncTrayIconToggle();
+}
+
+function syncCardActionSelects() {
+  const selectedActions = state.settings?.cardActions ?? [];
+
+  for (const [index, select] of cardActionSelectEls.entries()) {
+    select.value = selectedActions[index] ?? "none";
+  }
 }
 
 function renderTrayIconOptions() {
@@ -540,91 +594,120 @@ function createProjectCard(project: Project) {
   const actions = document.createElement("div");
   actions.className = "project-actions";
 
-  const actionPanel = document.createElement("div");
-  actionPanel.className = "project-action-panel";
+  const configuredActions = getProjectCardActions(project);
 
-  const actionLabel = document.createElement("p");
-  actionLabel.className = "detail-label";
-  actionLabel.textContent = "Open In";
+  if (configuredActions.length > 0) {
+    const actionPanel = document.createElement("div");
+    actionPanel.className = "project-action-panel";
 
-  if (project.workspacePath) {
-    const openWorkspaceButton = createProjectActionButton(
-      "workspace",
-      "VS Code Workspace",
-      "Open the saved workspace in VS Code",
-      `Open ${project.name} workspace in VS Code`,
-      "primary-action code-action",
-      async () => {
-        await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
-      },
-    );
-    actions.append(openWorkspaceButton);
+    const actionLabel = document.createElement("p");
+    actionLabel.className = "detail-label";
+    actionLabel.textContent = "Open In";
 
-    const openOpencodeButton = createProjectActionButton(
-      "opencode",
-      "Opencode",
-      "Open the project folder in Opencode",
-      `Open ${project.name} with Opencode`,
-      "secondary-action opencode-action",
-      async () => {
-        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
-      },
-    );
-    actions.append(openOpencodeButton);
+    for (const button of configuredActions) {
+      actions.append(button);
+    }
 
-    const openTerminalButton = createProjectActionButton(
-      "terminal",
-      "Terminal",
-      "Open the project folder in your preferred terminal",
-      `Open ${project.name} in Terminal`,
-      "secondary-action terminal-action",
-      async () => {
-        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
-      },
-    );
-    actions.append(openTerminalButton);
-  } else {
-    const openFolderButton = createProjectActionButton(
-      "folder",
-      "VS Code Folder",
-      "Open the project folder in VS Code",
-      `Open ${project.name} folder in VS Code`,
-      "primary-action folder-primary-action code-action",
-      async () => {
-        await openInCode(project.path, `Opened ${project.name} in VS Code.`);
-      },
-    );
-    actions.append(openFolderButton);
-
-    const openOpencodeButton = createProjectActionButton(
-      "opencode",
-      "Opencode",
-      "Open the project folder in Opencode",
-      `Open ${project.name} with Opencode`,
-      "secondary-action opencode-action",
-      async () => {
-        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
-      },
-    );
-    actions.append(openOpencodeButton);
-
-    const openTerminalButton = createProjectActionButton(
-      "terminal",
-      "Terminal",
-      "Open the project folder in your preferred terminal",
-      `Open ${project.name} in Terminal`,
-      "secondary-action terminal-action",
-      async () => {
-        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
-      },
-    );
-    actions.append(openTerminalButton);
+    actionPanel.append(actionLabel, actions);
+    footer.append(actionPanel);
   }
 
-  actionPanel.append(actionLabel, actions);
-  footer.append(actionPanel, modified);
+  footer.append(modified);
   card.append(header, detailsPanel, footer);
   return card;
+}
+
+function getProjectCardActions(project: Project) {
+  const configuredActions = state.settings?.cardActions ?? [];
+  const resolvedActions: CardActionName[] = configuredActions.length > 0
+    ? configuredActions
+    : ["workspace", "opencode", "terminal"];
+
+  return resolvedActions
+    .map((actionName, index) => createConfiguredProjectAction(project, actionName, index === 0))
+    .filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement);
+}
+
+function createConfiguredProjectAction(project: Project, actionName: CardActionName, isPrimary: boolean) {
+  const variant = isPrimary ? "primary" : "secondary";
+
+  switch (actionName) {
+    case "workspace":
+      if (project.workspacePath) {
+        return createProjectActionButton(
+          "workspace",
+          "VS Code Workspace",
+          "Open the saved workspace in VS Code",
+          `Open ${project.name} workspace in VS Code`,
+          variant === "primary" ? "primary-action" : "secondary-action",
+          async () => {
+            await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
+          },
+        );
+      }
+
+      return createProjectActionButton(
+        "workspace",
+        "Create Workspace",
+        "Create and open a default VS Code workspace",
+        `Create default workspace for ${project.name}`,
+        variant === "primary" ? "primary-action" : "secondary-action",
+        async () => {
+          await createDefaultWorkspace(project);
+        },
+      );
+    case "folder":
+      return createProjectActionButton(
+        "folder",
+        "VS Code Folder",
+        "Open the project folder in VS Code",
+        `Open ${project.name} folder in VS Code`,
+        variant === "primary" ? "primary-action folder-primary-action" : "secondary-action",
+        async () => {
+          await openInCode(project.path, `Opened ${project.name} in VS Code.`);
+        },
+      );
+    case "terminal":
+      return createProjectActionButton(
+        "terminal",
+        "Terminal",
+        "Open the project folder in your preferred terminal",
+        `Open ${project.name} in Terminal`,
+        variant === "primary" ? "primary-action" : "secondary-action",
+        async () => {
+          await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
+        },
+      );
+    case "opencode":
+      return createProjectActionButton(
+        "opencode",
+        "Opencode",
+        "Open the project folder in Opencode",
+        `Open ${project.name} with Opencode`,
+        variant === "primary" ? "primary-action" : "secondary-action",
+        async () => {
+          await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
+        },
+      );
+    case "git":
+      if (!project.isGitRepo) {
+        return null;
+      }
+
+      return createProjectActionButton(
+        "git",
+        "Git History",
+        "Open recent commits and branches",
+        `View git history for ${project.name}`,
+        variant === "primary" ? "primary-action" : "secondary-action",
+        async () => {
+          await openGitHistory(project);
+        },
+      );
+    case "none":
+    default:
+      return null;
+  }
 }
 
 function createTechStrip(tags: string[]) {
@@ -1002,6 +1085,7 @@ function getResolvedColorSchemeMode() {
 function applyColorSchemeMode() {
   const resolvedColorSchemeMode = getResolvedColorSchemeMode();
   document.documentElement.dataset.theme = resolvedColorSchemeMode;
+  document.documentElement.style.colorScheme = resolvedColorSchemeMode;
 
   const isLight = state.colorSchemeMode === "light";
   const isDark = state.colorSchemeMode === "dark";
@@ -1135,6 +1219,19 @@ function setSettingsStatus(message: string, isError = false) {
   settingsStatusEl.dataset.state = isError ? "error" : "default";
 }
 
+async function saveCardActions(cardActions: CardActionName[]) {
+  setSettingsStatus("Saving project card actions...");
+
+  try {
+    state.settings = await invoke<AppSettings>("update_card_actions", { cardActions });
+    syncSettingsUi();
+    renderProjects();
+    setSettingsStatus("Project card actions updated.");
+  } catch (error) {
+    setSettingsStatus(String(error), true);
+  }
+}
+
 function shouldShowTrayHint() {
   return window.localStorage.getItem(TRAY_HINT_DISMISSED_KEY) !== "true";
 }
@@ -1169,6 +1266,7 @@ function openSettings() {
 
   projectRootInputEl.value = state.settings.projectRoot;
   preferredTerminalSelectEl.value = state.settings.preferredTerminal;
+  syncCardActionSelects();
   setSettingsStatus("");
   settingsModalEl.showModal();
 }
@@ -1273,6 +1371,7 @@ window.addEventListener("DOMContentLoaded", () => {
   projectRootDefaultEl = document.querySelector("#project-root-default") as HTMLElement;
   preferredTerminalSelectEl = document.querySelector("#preferred-terminal-select") as HTMLSelectElement;
   trayIconOptionsEl = document.querySelector("#tray-icon-options") as HTMLElement;
+  cardActionSelectEls = Array.from(document.querySelectorAll("[data-card-action-slot]")) as HTMLSelectElement[];
   settingsStatusEl = document.querySelector("#settings-status") as HTMLElement;
   projectRootResetEl = document.querySelector("#project-root-reset") as HTMLButtonElement;
   appThemeButtonEls = Array.from(document.querySelectorAll("[data-app-theme-option]")) as HTMLButtonElement[];
@@ -1316,6 +1415,16 @@ window.addEventListener("DOMContentLoaded", () => {
   preferredTerminalSelectEl.addEventListener("change", async (event) => {
     await savePreferredTerminal((event.target as HTMLSelectElement).value);
   });
+
+  for (const select of cardActionSelectEls) {
+    select.addEventListener("change", async () => {
+      const cardActions = cardActionSelectEls.map((element) => {
+        const value = element.value;
+        return isCardActionName(value) ? value : "none";
+      });
+      await saveCardActions(cardActions);
+    });
+  }
 
   for (const button of appThemeButtonEls) {
     button.addEventListener("click", () => {
@@ -1406,9 +1515,13 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 500);
   }
 
-  renderReleaseNotes();
+  void loadReleaseNotes();
   syncSystemThemeListener();
   applyAppTheme();
   applyColorSchemeMode();
   void initializeApp();
 });
+
+function isCardActionName(value: string): value is CardActionName {
+  return CARD_ACTION_OPTIONS.some((option) => option.name === value);
+}

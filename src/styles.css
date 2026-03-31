@@ -762,11 +762,17 @@ button:disabled {
   font: inherit;
   color: var(--text);
   background: var(--panel-strong);
+  -webkit-text-fill-color: var(--text);
 }
 
 .branch-picker select:focus {
   outline: 2px solid var(--focus-outline);
   outline-offset: 2px;
+}
+
+.branch-picker select option {
+  color: var(--text);
+  background: var(--panel-strong);
 }
 
 .history-status[data-state="error"] {
@@ -934,6 +940,11 @@ button:disabled {
   margin: 0;
 }
 
+.release-notes-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
 .release-note-items {
   padding-left: 1.1rem;
   color: var(--muted);
@@ -1066,11 +1077,23 @@ button:disabled {
   font: inherit;
   color: var(--text);
   background: var(--panel-strong);
+  -webkit-text-fill-color: var(--text);
 }
 
 .settings-section select:focus {
   outline: 2px solid var(--focus-outline);
   outline-offset: 2px;
+}
+
+.settings-section select option {
+  color: var(--text);
+  background: var(--panel-strong);
+}
+
+.card-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
 }
 
 .project-grid[data-view-mode="compact"] {

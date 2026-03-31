@@ -27,6 +27,7 @@ struct AppSettingsResponse {
     default_project_root: String,
     preferred_terminal: String,
     tray_icon: String,
+    card_actions: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -36,6 +37,8 @@ struct StoredSettings {
     preferred_terminal: String,
     #[serde(default = "default_tray_icon")]
     tray_icon: String,
+    #[serde(default = "default_card_actions")]
+    card_actions: Vec<String>,
 }
 
 const TRAY_ICON_ID: &str = "project-dashboard-tray";
@@ -90,6 +93,13 @@ struct GitCommitDetails {
     authored_relative_time: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseNoteEntry {
+    version: String,
+    items: Vec<String>,
+}
+
 fn default_workspace_contents() -> String {
     serde_json::json!({
         "folders": [
@@ -120,6 +130,14 @@ fn default_tray_icon() -> String {
     "grid".to_string()
 }
 
+fn default_card_actions() -> Vec<String> {
+    vec![
+        "workspace".to_string(),
+        "opencode".to_string(),
+        "terminal".to_string(),
+    ]
+}
+
 fn supported_terminals() -> &'static [&'static str] {
     &[
         "auto",
@@ -142,6 +160,10 @@ fn supported_tray_icons() -> &'static [&'static str] {
     &["grid", "orbit", "stacks"]
 }
 
+fn supported_card_actions() -> &'static [&'static str] {
+    &["workspace", "folder", "terminal", "opencode", "git", "none"]
+}
+
 fn normalize_preferred_terminal(value: &str) -> Result<String, String> {
     let normalized = value.trim().to_lowercase();
 
@@ -160,6 +182,26 @@ fn normalize_tray_icon(value: &str) -> Result<String, String> {
     } else {
         Err(format!("Unsupported tray icon: {value}"))
     }
+}
+
+fn normalize_card_actions(values: &[String]) -> Result<Vec<String>, String> {
+    if values.len() != 3 {
+        return Err("Project card actions must contain exactly three slots.".to_string());
+    }
+
+    let mut normalized = Vec::with_capacity(values.len());
+
+    for value in values {
+        let action = value.trim().to_lowercase();
+
+        if supported_card_actions().contains(&action.as_str()) {
+            normalized.push(action);
+        } else {
+            return Err(format!("Unsupported project card action: {value}"));
+        }
+    }
+
+    Ok(normalized)
 }
 
 fn tray_icon_image(icon_name: &str) -> Image<'static> {
@@ -401,6 +443,7 @@ fn load_settings() -> Result<StoredSettings, String> {
             project_root: default_root,
             preferred_terminal: default_preferred_terminal(),
             tray_icon: default_tray_icon(),
+            card_actions: default_card_actions(),
         });
     }
 
@@ -416,6 +459,8 @@ fn load_settings() -> Result<StoredSettings, String> {
                 .unwrap_or_else(|_| default_preferred_terminal()),
             tray_icon: normalize_tray_icon(&settings.tray_icon)
                 .unwrap_or_else(|_| default_tray_icon()),
+            card_actions: normalize_card_actions(&settings.card_actions)
+                .unwrap_or_else(|_| default_card_actions()),
         })
     } else {
         Ok(StoredSettings {
@@ -424,6 +469,8 @@ fn load_settings() -> Result<StoredSettings, String> {
                 .unwrap_or_else(|_| default_preferred_terminal()),
             tray_icon: normalize_tray_icon(&settings.tray_icon)
                 .unwrap_or_else(|_| default_tray_icon()),
+            card_actions: normalize_card_actions(&settings.card_actions)
+                .unwrap_or_else(|_| default_card_actions()),
         })
     }
 }
@@ -472,6 +519,7 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
         default_project_root: default_project_root().to_string_lossy().into_owned(),
         preferred_terminal: settings.preferred_terminal,
         tray_icon: settings.tray_icon,
+        card_actions: settings.card_actions,
     })
 }
 
@@ -528,6 +576,15 @@ fn update_tray_icon(app: AppHandle, tray_icon: String) -> Result<AppSettingsResp
 
     sync_app_menu_icon(&app)?;
     sync_main_window_icon(&app)?;
+
+    app_settings_response()
+}
+
+#[tauri::command]
+fn update_card_actions(card_actions: Vec<String>) -> Result<AppSettingsResponse, String> {
+    let mut settings = load_settings()?;
+    settings.card_actions = normalize_card_actions(&card_actions)?;
+    save_settings(&settings)?;
 
     app_settings_response()
 }
@@ -904,6 +961,87 @@ fn get_git_commit_details(
     })
 }
 
+#[tauri::command]
+fn get_release_notes() -> Result<Vec<ReleaseNoteEntry>, String> {
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or_else(|| "Could not resolve repository root.".to_string())?
+        .to_path_buf();
+
+    let tags_output = Command::new("git")
+        .arg("-C")
+        .arg(&repo_root)
+        .arg("tag")
+        .arg("--list")
+        .arg("v*")
+        .arg("--sort=-version:refname")
+        .output()
+        .map_err(|error| format!("Could not read git tags: {error}"))?;
+
+    if !tags_output.status.success() {
+        let stderr = String::from_utf8_lossy(&tags_output.stderr)
+            .trim()
+            .to_string();
+        return Err(if stderr.is_empty() {
+            format!("Git tag failed with status {}", tags_output.status)
+        } else {
+            stderr
+        });
+    }
+
+    let tags = String::from_utf8_lossy(&tags_output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+
+    let mut entries = Vec::new();
+
+    for (index, tag) in tags.iter().enumerate() {
+        let range = if let Some(previous_tag) = tags.get(index + 1) {
+            format!("{previous_tag}..{tag}")
+        } else {
+            tag.clone()
+        };
+
+        let log_output = Command::new("git")
+            .arg("-C")
+            .arg(&repo_root)
+            .arg("log")
+            .arg(&range)
+            .arg("--no-merges")
+            .arg("--pretty=format:%s")
+            .output()
+            .map_err(|error| format!("Could not read release history for {tag}: {error}"))?;
+
+        if !log_output.status.success() {
+            let stderr = String::from_utf8_lossy(&log_output.stderr)
+                .trim()
+                .to_string();
+            return Err(if stderr.is_empty() {
+                format!("Git log failed with status {} for {tag}", log_output.status)
+            } else {
+                stderr
+            });
+        }
+
+        let items = String::from_utf8_lossy(&log_output.stdout)
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .map(ToOwned::to_owned)
+            .collect::<Vec<_>>();
+
+        entries.push(ReleaseNoteEntry {
+            version: tag.trim_start_matches('v').to_string(),
+            items,
+        });
+    }
+
+    Ok(entries)
+}
+
 fn find_workspace(project_path: &Path) -> Option<PathBuf> {
     let project_name = project_path.file_name()?.to_string_lossy().to_lowercase();
     let search_paths = [project_path.to_path_buf(), project_path.join(".vscode")];
@@ -1174,6 +1312,7 @@ pub fn run() {
             update_project_root,
             update_preferred_terminal,
             update_tray_icon,
+            update_card_actions,
             list_projects,
             open_in_code,
             open_in_terminal,
@@ -1182,7 +1321,8 @@ pub fn run() {
             get_git_history,
             list_git_branches,
             get_git_overview,
-            get_git_commit_details
+            get_git_commit_details,
+            get_release_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
