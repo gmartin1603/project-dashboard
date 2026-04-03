@@ -79,12 +79,21 @@ struct GitBranchEntry {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct GitChangedFileEntry {
+    path: String,
+    status: String,
+    badge: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GitOverview {
     current_branch: String,
     upstream_branch: Option<String>,
     ahead_count: u32,
     behind_count: u32,
     is_dirty: bool,
+    changed_files: Vec<GitChangedFileEntry>,
 }
 
 #[derive(Serialize)]
@@ -1059,6 +1068,7 @@ fn get_git_overview(project_path: String) -> Result<GitOverview, String> {
     let mut ahead_count = 0;
     let mut behind_count = 0;
     let mut is_dirty = false;
+    let changed_files = list_git_changed_files(&candidate)?;
 
     for line in stdout.lines() {
         if let Some(value) = line.strip_prefix("# branch.head ") {
@@ -1085,7 +1095,83 @@ fn get_git_overview(project_path: String) -> Result<GitOverview, String> {
         ahead_count,
         behind_count,
         is_dirty,
+        changed_files,
     })
+}
+
+fn list_git_changed_files(candidate: &Path) -> Result<Vec<GitChangedFileEntry>, String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(candidate)
+        .arg("status")
+        .arg("--porcelain")
+        .arg("-z")
+        .arg("--untracked-files=all")
+        .output()
+        .map_err(|error| format!("Could not list changed git files: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!("Git status failed with status {}", output.status)
+        } else {
+            stderr
+        });
+    }
+
+    let mut changed_files = Vec::new();
+    let mut records = output.stdout.split(|byte| *byte == b'\0');
+
+    while let Some(record) = records.next() {
+        if record.is_empty() || record.len() < 4 {
+            continue;
+        }
+
+        let status = &record[..2];
+        let path = String::from_utf8_lossy(&record[3..]).to_string();
+
+        if status.contains(&b'R') || status.contains(&b'C') {
+            let _ = records.next();
+        }
+
+        if status == b"??" {
+            changed_files.push(GitChangedFileEntry {
+                path,
+                status: "untracked".to_string(),
+                badge: "??".to_string(),
+            });
+
+            continue;
+        }
+
+        if let Some(code) = status
+            .first()
+            .copied()
+            .filter(|code| *code != b' ' && *code != b'?')
+        {
+            changed_files.push(GitChangedFileEntry {
+                path: path.clone(),
+                status: "staged".to_string(),
+                badge: char::from(code).to_string(),
+            });
+        }
+
+        if let Some(code) = status.get(1).copied().filter(|code| *code != b' ') {
+            changed_files.push(GitChangedFileEntry {
+                path,
+                status: "modified".to_string(),
+                badge: char::from(code).to_string(),
+            });
+        }
+    }
+
+    changed_files.sort_by(|left, right| {
+        left.status
+            .cmp(&right.status)
+            .then_with(|| left.path.cmp(&right.path))
+    });
+
+    Ok(changed_files)
 }
 
 #[tauri::command]

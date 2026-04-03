@@ -730,6 +730,7 @@ button:disabled {
 
 .history-modal-header,
 .history-controls,
+.history-changes,
 .history-list,
 .history-status {
   padding-left: 18px;
@@ -757,6 +758,68 @@ button:disabled {
 
 .history-controls {
   padding-top: 14px;
+}
+
+.history-changes {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.history-change-group {
+  display: grid;
+  gap: 8px;
+}
+
+.history-change-heading {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-change-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-change-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-muted);
+  color: var(--text);
+}
+
+.history-change-badge,
+.history-change-path {
+  font-family: "Cascadia Mono", "Consolas", monospace;
+}
+
+.history-change-badge {
+  min-width: 2.3ch;
+  padding: 0.18rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.history-change-path {
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
 }
 
 .branch-picker {

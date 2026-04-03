@@ -41,6 +41,13 @@ type GitOverview = {
   aheadCount: number;
   behindCount: number;
   isDirty: boolean;
+  changedFiles: GitChangedFile[];
+};
+
+type GitChangedFile = {
+  path: string;
+  status: "staged" | "modified" | "untracked";
+  badge: string;
 };
 
 type GitCommitDetails = {
@@ -197,6 +204,7 @@ let historyOverviewEl: HTMLElement;
 let historyStatusEl: HTMLElement;
 let historyListEl: HTMLElement;
 let historyBranchSelectEl: HTMLSelectElement;
+let historyChangesEl: HTMLElement;
 let commitModalEl: HTMLDialogElement;
 let commitCloseButtonEl: HTMLButtonElement;
 let commitSubjectEl: HTMLElement;
@@ -895,6 +903,7 @@ async function openGitHistory(project: Project) {
   historyOverviewEl.textContent = "";
   historyBranchSelectEl.disabled = true;
   historyBranchSelectEl.innerHTML = "";
+  historyChangesEl.innerHTML = "";
 
   if (!historyModalEl.open) {
     document.body.classList.add("modal-open");
@@ -949,6 +958,58 @@ function renderGitOverview(overview: GitOverview) {
   const sync = overview.upstreamBranch ? `Ahead ${overview.aheadCount} / Behind ${overview.behindCount}` : "Local only";
   const dirty = overview.isDirty ? "Dirty" : "Clean";
   historyOverviewEl.textContent = `${overview.currentBranch} - ${upstream} - ${sync} - ${dirty}`;
+  renderGitChanges(overview.changedFiles);
+}
+
+function renderGitChanges(changedFiles: GitChangedFile[]) {
+  historyChangesEl.innerHTML = "";
+
+  if (changedFiles.length === 0) {
+    return;
+  }
+
+  const sections: Array<{ title: string; status: GitChangedFile["status"] }> = [
+    { title: "Staged files", status: "staged" },
+    { title: "Modified files", status: "modified" },
+    { title: "Untracked files", status: "untracked" },
+  ];
+
+  for (const section of sections) {
+    const files = changedFiles.filter((file) => file.status === section.status);
+
+    if (files.length === 0) {
+      continue;
+    }
+
+    const group = document.createElement("section");
+    group.className = "history-change-group";
+
+    const heading = document.createElement("p");
+    heading.className = "history-change-heading";
+    heading.textContent = `${section.title} (${files.length})`;
+
+    const list = document.createElement("ul");
+    list.className = "history-change-list";
+
+    for (const file of files) {
+      const item = document.createElement("li");
+      item.className = "history-change-item";
+
+      const badge = document.createElement("span");
+      badge.className = "history-change-badge";
+      badge.textContent = file.badge;
+
+      const path = document.createElement("span");
+      path.className = "history-change-path";
+      path.textContent = file.path;
+
+      item.append(badge, path);
+      list.append(item);
+    }
+
+    group.append(heading, list);
+    historyChangesEl.append(group);
+  }
 }
 
 async function loadGitHistory(projectPath: string, branchName: string) {
@@ -1377,6 +1438,7 @@ window.addEventListener("DOMContentLoaded", () => {
   historyStatusEl = document.querySelector("#history-status") as HTMLElement;
   historyListEl = document.querySelector("#history-list") as HTMLElement;
   historyBranchSelectEl = document.querySelector("#history-branch-select") as HTMLSelectElement;
+  historyChangesEl = document.querySelector("#history-changes") as HTMLElement;
   commitModalEl = document.querySelector("#commit-modal") as HTMLDialogElement;
   commitCloseButtonEl = document.querySelector("#commit-close") as HTMLButtonElement;
   commitSubjectEl = document.querySelector("#commit-subject") as HTMLElement;
@@ -1522,6 +1584,7 @@ window.addEventListener("DOMContentLoaded", () => {
     historyOverviewEl.textContent = "";
     historyStatusEl.dataset.state = "default";
     historyStatusEl.textContent = "";
+    historyChangesEl.innerHTML = "";
     historyListEl.innerHTML = "";
     historyBranchSelectEl.innerHTML = "";
   });
