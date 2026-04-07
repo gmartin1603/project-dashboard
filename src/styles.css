@@ -421,6 +421,14 @@ button:disabled {
   gap: 12px;
 }
 
+.results-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .project-grid {
   display: grid;
   gap: 10px;
@@ -758,6 +766,14 @@ button:disabled {
 
 .history-controls {
   padding-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.history-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .history-changes {
@@ -859,6 +875,134 @@ button:disabled {
   padding-bottom: 18px;
   max-height: 60vh;
   overflow: auto;
+}
+
+.worktree-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 18px 0;
+}
+
+.worktree-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+}
+
+.worktree-panel-copy,
+.worktree-meta,
+.worktree-path,
+.create-form-hint {
+  margin: 0;
+  color: var(--muted);
+}
+
+.worktree-list {
+  display: grid;
+  gap: 10px;
+}
+
+.worktree-section {
+  display: grid;
+  gap: 10px;
+}
+
+.worktree-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-muted);
+}
+
+.worktree-item[data-state="stale"] {
+  border-style: dashed;
+}
+
+.worktree-lane {
+  width: 10px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.worktree-lane[data-kind="primary"] {
+  background: var(--accent);
+}
+
+.worktree-lane[data-kind="current"] {
+  background: var(--git-text);
+}
+
+.worktree-lane[data-kind="linked"] {
+  background: var(--border-strong);
+}
+
+.worktree-lane[data-kind="stale"] {
+  background: var(--error);
+}
+
+.worktree-item-body,
+.worktree-item-title-wrap,
+.git-summary-strip,
+.create-form {
+  display: grid;
+  gap: 8px;
+}
+
+.worktree-item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.worktree-item-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.worktree-badges,
+.git-summary-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.worktree-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.worktree-path {
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.create-modal {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--modal-shadow);
+}
+
+.create-modal::backdrop {
+  background: var(--modal-backdrop);
+}
+
+.create-form {
+  padding: 0 18px 18px;
+}
+
+.button-secondary {
+  background: var(--panel-strong);
+  color: var(--text);
 }
 
 .history-item {
@@ -1497,6 +1641,13 @@ button:disabled {
 
   .project-actions {
     width: 100%;
+  }
+
+  .history-actions,
+  .worktree-item-header,
+  .worktree-item-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .settings-actions {

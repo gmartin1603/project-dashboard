@@ -1,5 +1,8 @@
 # Changelog
 
+## **Deprecated**
+- The change log now renders the git history when the version is clicked in the UI. This behavior replaces the previous static changelog entries.
+
 ## 0.2.3
 
 - made the app version visible in the main dashboard header

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     env, fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     process::{Command, Stdio},
     time::UNIX_EPOCH,
 };
@@ -58,8 +58,46 @@ struct ProjectEntry {
     workspace_path: Option<String>,
     has_workspace: bool,
     is_git_repo: bool,
+    git_branch: Option<String>,
+    git_common_dir: Option<String>,
+    git_worktree_count: Option<usize>,
+    is_primary_worktree: Option<bool>,
     last_modified_epoch_ms: Option<u64>,
     tech_tags: Vec<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitWorktreeEntry {
+    name: String,
+    path: String,
+    display_path: String,
+    workspace_path: Option<String>,
+    has_workspace: bool,
+    branch: Option<String>,
+    is_current: bool,
+    is_primary: bool,
+    is_detached: bool,
+    is_locked: bool,
+    is_prunable: bool,
+    is_bare: bool,
+    is_dirty: bool,
+    is_stale: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateProjectWorkspaceResult {
+    project_path: String,
+    workspace_path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateGitWorktreeResult {
+    project_path: String,
+    workspace_path: Option<String>,
+    branch: String,
 }
 
 #[derive(Serialize)]
@@ -115,6 +153,24 @@ struct ReleaseNoteEntry {
     items: Vec<String>,
 }
 
+struct GitProjectSummary {
+    branch: Option<String>,
+    common_dir: String,
+    worktree_count: usize,
+    is_primary_worktree: bool,
+}
+
+#[derive(Default)]
+struct ParsedGitWorktreeRecord {
+    path: String,
+    branch: Option<String>,
+    is_primary: bool,
+    is_detached: bool,
+    is_locked: bool,
+    is_prunable: bool,
+    is_bare: bool,
+}
+
 fn default_workspace_contents() -> String {
     serde_json::json!({
         "folders": [
@@ -135,6 +191,49 @@ fn default_workspace_contents() -> String {
         }
     })
     .to_string()
+}
+
+fn sanitize_project_name(value: &str) -> String {
+    let mut sanitized = String::new();
+    let mut previous_was_separator = false;
+
+    for character in value.trim().chars() {
+        let normalized = if character.is_ascii_alphanumeric() {
+            character.to_ascii_lowercase()
+        } else if matches!(character, '-' | '_' | '.' | '/' | ' ') {
+            '-'
+        } else {
+            continue;
+        };
+
+        if normalized == '-' {
+            if previous_was_separator {
+                continue;
+            }
+
+            previous_was_separator = true;
+            sanitized.push(normalized);
+        } else {
+            previous_was_separator = false;
+            sanitized.push(normalized);
+        }
+    }
+
+    sanitized.trim_matches('-').to_string()
+}
+
+fn workspace_file_path(project_path: &Path) -> Result<PathBuf, String> {
+    let project_name = project_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| {
+            format!(
+                "Could not determine a workspace name for {}.",
+                project_path.display()
+            )
+        })?;
+
+    Ok(project_path.join(format!("{project_name}.code-workspace")))
 }
 
 fn default_preferred_terminal() -> String {
@@ -671,6 +770,227 @@ fn app_settings_response() -> Result<AppSettingsResponse, String> {
     })
 }
 
+fn git_command_output(repo_path: &Path, args: &[&str], context: &str) -> Result<String, String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .args(args)
+        .output()
+        .map_err(|error| format!("Could not {context}: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!(
+                "Git command failed with status {} while trying to {context}",
+                output.status
+            )
+        } else {
+            stderr
+        });
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn resolve_git_project_summary(project_path: &Path) -> Result<GitProjectSummary, String> {
+    let branch_output = git_command_output(
+        project_path,
+        &["branch", "--show-current"],
+        "read the current branch",
+    )?;
+    let common_dir = git_command_output(
+        project_path,
+        &["rev-parse", "--git-common-dir"],
+        "read the git common directory",
+    )?;
+    let common_dir_path = project_path.join(common_dir.trim());
+    let canonical_common_dir = fs::canonicalize(&common_dir_path)
+        .map_err(|error| format!("Could not access {}: {error}", common_dir_path.display()))?;
+    let main_worktree_dir = canonical_common_dir
+        .parent()
+        .and_then(|parent| parent.parent())
+        .ok_or_else(|| {
+            format!(
+                "Could not determine the primary worktree for {}.",
+                project_path.display()
+            )
+        })?;
+    let canonical_project_path = fs::canonicalize(project_path)
+        .map_err(|error| format!("Could not access {}: {error}", project_path.display()))?;
+    let root = configured_project_root()?;
+    let worktree_count = parse_git_worktree_records(project_path)?
+        .into_iter()
+        .filter_map(|record| canonicalize_existing_worktree_path(&record.path).ok())
+        .filter(|path| path.starts_with(&root))
+        .count();
+
+    Ok(GitProjectSummary {
+        branch: if branch_output.is_empty() {
+            None
+        } else {
+            Some(branch_output)
+        },
+        common_dir: canonical_common_dir.to_string_lossy().into_owned(),
+        worktree_count,
+        is_primary_worktree: canonical_project_path == main_worktree_dir,
+    })
+}
+
+fn canonicalize_existing_worktree_path(path: &str) -> Result<PathBuf, String> {
+    let worktree_path = PathBuf::from(path);
+
+    if !worktree_path.exists() {
+        return Err(format!("{} does not exist.", worktree_path.display()));
+    }
+
+    fs::canonicalize(&worktree_path)
+        .map_err(|error| format!("Could not access {}: {error}", worktree_path.display()))
+}
+
+fn worktree_display_name(path: &Path) -> String {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("worktree")
+        .to_string()
+}
+
+fn parse_git_worktree_records(project_path: &Path) -> Result<Vec<ParsedGitWorktreeRecord>, String> {
+    let output = git_command_output(
+        project_path,
+        &["worktree", "list", "--porcelain"],
+        "read git worktrees",
+    )?;
+    let mut records = Vec::new();
+    let mut current = ParsedGitWorktreeRecord::default();
+
+    for line in output.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.is_empty() {
+            if !current.path.is_empty() {
+                records.push(current);
+                current = ParsedGitWorktreeRecord::default();
+            }
+
+            continue;
+        }
+
+        if let Some(value) = trimmed.strip_prefix("worktree ") {
+            current.path = value.trim().to_string();
+        } else if let Some(value) = trimmed.strip_prefix("branch refs/heads/") {
+            current.branch = Some(value.trim().to_string());
+        } else if trimmed == "HEAD" {
+            current.is_detached = true;
+        } else if trimmed == "detached" {
+            current.is_detached = true;
+        } else if trimmed == "bare" {
+            current.is_bare = true;
+        } else if trimmed == "locked" {
+            current.is_locked = true;
+        } else if trimmed.starts_with("locked ") {
+            current.is_locked = true;
+        } else if trimmed == "prunable" {
+            current.is_prunable = true;
+        } else if trimmed.starts_with("prunable ") {
+            current.is_prunable = true;
+        }
+    }
+
+    if !current.path.is_empty() {
+        records.push(current);
+    }
+
+    if let Some(first) = records.first_mut() {
+        first.is_primary = true;
+    }
+
+    Ok(records)
+}
+
+fn git_worktree_dirty_state(project_path: &Path) -> Result<bool, String> {
+    let output = git_command_output(project_path, &["status", "--porcelain"], "read git status")?;
+    Ok(!output.is_empty())
+}
+
+fn validate_new_path_within_code_root(target_path: &str) -> Result<PathBuf, String> {
+    let root = configured_project_root()?;
+    let candidate = PathBuf::from(target_path.trim());
+
+    if candidate.as_os_str().is_empty() {
+        return Err("Target path cannot be empty.".to_string());
+    }
+
+    if candidate.exists() {
+        return Err(format!("{} already exists.", candidate.display()));
+    }
+
+    if candidate.is_absolute() {
+        if !candidate.starts_with(&root) {
+            return Err(format!(
+                "Refused to create {} because it is outside {}",
+                candidate.display(),
+                root.display()
+            ));
+        }
+
+        let parent = candidate.parent().ok_or_else(|| {
+            format!(
+                "Could not determine the parent directory for {}.",
+                candidate.display()
+            )
+        })?;
+        let canonical_parent = fs::canonicalize(parent)
+            .map_err(|error| format!("Could not access {}: {error}", parent.display()))?;
+
+        if !canonical_parent.starts_with(&root) {
+            return Err(format!(
+                "Refused to create {} because it is outside {}",
+                candidate.display(),
+                root.display()
+            ));
+        }
+
+        return Ok(candidate);
+    }
+
+    let mut normalized = PathBuf::new();
+    for component in candidate.components() {
+        match component {
+            Component::Normal(value) => normalized.push(value),
+            Component::CurDir => {}
+            Component::ParentDir | Component::Prefix(_) | Component::RootDir => {
+                return Err("Target path must stay inside the configured project root.".to_string())
+            }
+        }
+    }
+
+    if normalized.as_os_str().is_empty() {
+        return Err("Target path cannot be empty.".to_string());
+    }
+
+    let absolute_candidate = root.join(normalized);
+    let parent = absolute_candidate.parent().ok_or_else(|| {
+        format!(
+            "Could not determine the parent directory for {}.",
+            absolute_candidate.display()
+        )
+    })?;
+
+    let canonical_parent = fs::canonicalize(parent)
+        .map_err(|error| format!("Could not access {}: {error}", parent.display()))?;
+
+    if !canonical_parent.starts_with(&root) {
+        return Err(format!(
+            "Refused to create {} because it is outside {}",
+            absolute_candidate.display(),
+            root.display()
+        ));
+    }
+
+    Ok(absolute_candidate)
+}
+
 #[tauri::command]
 fn get_app_settings() -> Result<AppSettingsResponse, String> {
     app_settings_response()
@@ -788,6 +1108,11 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
             let workspace_path = find_workspace(&path);
             let has_workspace = workspace_path.is_some();
             let is_git_repo = path.join(".git").exists();
+            let git_summary = if is_git_repo {
+                resolve_git_project_summary(&path).ok()
+            } else {
+                None
+            };
             let tech_tags = detect_tech_tags(&path);
             let last_modified_epoch_ms = entry
                 .metadata()
@@ -803,6 +1128,16 @@ fn list_projects() -> Result<Vec<ProjectEntry>, String> {
                     .map(|workspace| workspace.to_string_lossy().into_owned()),
                 has_workspace,
                 is_git_repo,
+                git_branch: git_summary
+                    .as_ref()
+                    .and_then(|summary| summary.branch.clone()),
+                git_common_dir: git_summary
+                    .as_ref()
+                    .map(|summary| summary.common_dir.clone()),
+                git_worktree_count: git_summary.as_ref().map(|summary| summary.worktree_count),
+                is_primary_worktree: git_summary
+                    .as_ref()
+                    .map(|summary| summary.is_primary_worktree),
                 last_modified_epoch_ms,
                 tech_tags,
             })
@@ -880,16 +1215,7 @@ fn create_default_workspace(project_path: String) -> Result<String, String> {
         ));
     }
 
-    let project_name = candidate
-        .file_name()
-        .and_then(|value| value.to_str())
-        .ok_or_else(|| {
-            format!(
-                "Could not determine a workspace name for {}.",
-                candidate.display()
-            )
-        })?;
-    let workspace_path = candidate.join(format!("{project_name}.code-workspace"));
+    let workspace_path = workspace_file_path(&candidate)?;
 
     fs::write(&workspace_path, default_workspace_contents()).map_err(|error| {
         format!(
@@ -899,6 +1225,32 @@ fn create_default_workspace(project_path: String) -> Result<String, String> {
     })?;
 
     Ok(workspace_path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+fn create_project_workspace(project_name: String) -> Result<CreateProjectWorkspaceResult, String> {
+    let sanitized_name = sanitize_project_name(&project_name);
+
+    if sanitized_name.is_empty() {
+        return Err("Project name must include letters or numbers.".to_string());
+    }
+
+    let project_path = validate_new_path_within_code_root(&sanitized_name)?;
+    fs::create_dir_all(&project_path)
+        .map_err(|error| format!("Could not create {}: {error}", project_path.display()))?;
+
+    let workspace_path = workspace_file_path(&project_path)?;
+    fs::write(&workspace_path, default_workspace_contents()).map_err(|error| {
+        format!(
+            "Could not write default workspace {}: {error}",
+            workspace_path.display()
+        )
+    })?;
+
+    Ok(CreateProjectWorkspaceResult {
+        project_path: project_path.to_string_lossy().into_owned(),
+        workspace_path: workspace_path.to_string_lossy().into_owned(),
+    })
 }
 
 #[tauri::command]
@@ -1096,6 +1448,182 @@ fn get_git_overview(project_path: String) -> Result<GitOverview, String> {
         behind_count,
         is_dirty,
         changed_files,
+    })
+}
+
+#[tauri::command]
+fn list_git_worktrees(project_path: String) -> Result<Vec<GitWorktreeEntry>, String> {
+    let candidate = validate_path_within_code_root(&project_path)?;
+
+    if !candidate.join(".git").exists() {
+        return Err(format!("{} is not a git repository", candidate.display()));
+    }
+
+    let current_path = fs::canonicalize(&candidate)
+        .map_err(|error| format!("Could not access {}: {error}", candidate.display()))?;
+    let root = configured_project_root()?;
+    let records = parse_git_worktree_records(&candidate)?;
+    let mut worktrees = Vec::new();
+
+    for record in records {
+        let parsed_path = PathBuf::from(&record.path);
+        let display_path = parsed_path.to_string_lossy().into_owned();
+        let display_name = worktree_display_name(&parsed_path);
+
+        match canonicalize_existing_worktree_path(&record.path) {
+            Ok(canonical_worktree_path) => {
+                if !canonical_worktree_path.starts_with(&root) {
+                    continue;
+                }
+
+                let workspace_path = find_workspace(&canonical_worktree_path);
+                let has_workspace = workspace_path.is_some();
+                let is_current = canonical_worktree_path == current_path;
+                let is_dirty = git_worktree_dirty_state(&canonical_worktree_path)?;
+
+                worktrees.push(GitWorktreeEntry {
+                    name: display_name,
+                    path: canonical_worktree_path.to_string_lossy().into_owned(),
+                    display_path,
+                    workspace_path: workspace_path.map(|path| path.to_string_lossy().into_owned()),
+                    has_workspace,
+                    branch: record.branch,
+                    is_current,
+                    is_primary: record.is_primary,
+                    is_detached: record.is_detached,
+                    is_locked: record.is_locked,
+                    is_prunable: record.is_prunable,
+                    is_bare: record.is_bare,
+                    is_dirty,
+                    is_stale: false,
+                });
+            }
+            Err(_) => {
+                if !parsed_path.starts_with(&root) {
+                    continue;
+                }
+
+                worktrees.push(GitWorktreeEntry {
+                    name: display_name,
+                    path: display_path.clone(),
+                    display_path,
+                    workspace_path: None,
+                    has_workspace: false,
+                    branch: record.branch,
+                    is_current: false,
+                    is_primary: record.is_primary,
+                    is_detached: record.is_detached,
+                    is_locked: record.is_locked,
+                    is_prunable: true,
+                    is_bare: record.is_bare,
+                    is_dirty: false,
+                    is_stale: true,
+                });
+            }
+        }
+    }
+
+    worktrees.sort_by(|left, right| {
+        left.is_stale
+            .cmp(&right.is_stale)
+            .then_with(|| right.is_primary.cmp(&left.is_primary))
+            .then_with(|| right.is_current.cmp(&left.is_current))
+            .then_with(|| left.name.cmp(&right.name))
+    });
+
+    Ok(worktrees)
+}
+
+#[tauri::command]
+fn prune_git_worktrees(project_path: String) -> Result<(), String> {
+    let candidate = validate_path_within_code_root(&project_path)?;
+
+    if !candidate.join(".git").exists() {
+        return Err(format!("{} is not a git repository", candidate.display()));
+    }
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(&candidate)
+        .arg("worktree")
+        .arg("prune")
+        .arg("--verbose")
+        .output()
+        .map_err(|error| format!("Could not prune git worktrees: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!("Git worktree prune failed with status {}", output.status)
+        } else {
+            stderr
+        });
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn create_git_worktree(
+    source_project_path: String,
+    branch_name: String,
+) -> Result<CreateGitWorktreeResult, String> {
+    let candidate = validate_path_within_code_root(&source_project_path)?;
+
+    if !candidate.join(".git").exists() {
+        return Err(format!("{} is not a git repository", candidate.display()));
+    }
+
+    let branch_name = sanitize_project_name(&branch_name);
+    if branch_name.is_empty() {
+        return Err("Branch name must include letters or numbers.".to_string());
+    }
+
+    let repo_name = candidate
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| format!("Could not determine a name for {}.", candidate.display()))?;
+    let default_folder_name = format!("{}-{}", sanitize_project_name(repo_name), branch_name);
+    let worktree_path = validate_new_path_within_code_root(&default_folder_name)?;
+    let worktree_path_display = worktree_path.to_string_lossy().into_owned();
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(&candidate)
+        .arg("worktree")
+        .arg("add")
+        .arg("-b")
+        .arg(&branch_name)
+        .arg(&worktree_path)
+        .output()
+        .map_err(|error| format!("Could not create git worktree: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!("Git worktree add failed with status {}", output.status)
+        } else {
+            stderr
+        });
+    }
+
+    let workspace_path = if find_workspace(&worktree_path).is_some() {
+        find_workspace(&worktree_path).map(|path| path.to_string_lossy().into_owned())
+    } else {
+        let workspace_path = workspace_file_path(&worktree_path)?;
+        fs::write(&workspace_path, default_workspace_contents()).map_err(|error| {
+            format!(
+                "Could not write default workspace {}: {error}",
+                workspace_path.display()
+            )
+        })?;
+        Some(workspace_path.to_string_lossy().into_owned())
+    };
+
+    Ok(CreateGitWorktreeResult {
+        project_path: worktree_path_display,
+        workspace_path,
+        branch: branch_name,
     })
 }
 
@@ -1577,9 +2105,13 @@ pub fn run() {
             open_in_terminal,
             open_in_opencode,
             create_default_workspace,
+            create_project_workspace,
             get_git_history,
             list_git_branches,
             get_git_overview,
+            list_git_worktrees,
+            create_git_worktree,
+            prune_git_worktrees,
             get_git_commit_details,
             get_release_notes
         ])

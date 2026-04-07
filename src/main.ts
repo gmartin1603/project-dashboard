@@ -3,83 +3,27 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import packageJson from "../package.json";
-
-type Project = {
-  name: string;
-  path: string;
-  workspacePath: string | null;
-  hasWorkspace: boolean;
-  isGitRepo: boolean;
-  lastModifiedEpochMs: number | null;
-  techTags: string[];
-};
-
-type AppSettings = {
-  projectRoot: string;
-  defaultProjectRoot: string;
-  preferredTerminal: string;
-  trayIcon: TrayIconName;
-  cardActions: CardActionName[];
-  layout: LayoutName;
-  appTheme: AppTheme;
-};
-
-type GitCommitEntry = {
-  shortHash: string;
-  subject: string;
-  relativeTime: string;
-};
-
-type GitBranchEntry = {
-  name: string;
-  isCurrent: boolean;
-};
-
-type GitOverview = {
-  currentBranch: string;
-  upstreamBranch: string | null;
-  aheadCount: number;
-  behindCount: number;
-  isDirty: boolean;
-  changedFiles: GitChangedFile[];
-};
-
-type GitChangedFile = {
-  path: string;
-  status: "staged" | "modified" | "untracked";
-  badge: string;
-};
-
-type GitCommitDetails = {
-  shortHash: string;
-  fullHash: string;
-  subject: string;
-  body: string;
-  authorName: string;
-  authorEmail: string;
-  authoredRelativeTime: string;
-};
-
-type ViewMode = "detailed" | "compact";
-type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode";
-type TrayIconName = "grid" | "orbit" | "stacks";
-type CardActionName = "workspace" | "folder" | "terminal" | "opencode" | "git" | "none";
-type LayoutName = "standard" | "sidebar-dock";
-type TechIconName =
-  | "node"
-  | "bun"
-  | "pnpm"
-  | "yarn"
-  | "deno"
-  | "rust"
-  | "python"
-  | "go"
-  | "php"
-  | "ruby"
-  | "dart"
-  | "java"
-  | "cpp"
-  | "dotnet";
+import {
+  type AppSettings,
+  type AppTheme,
+  type CardActionName,
+  type ColorSchemeMode,
+  type CreateGitWorktreeResult,
+  type CreateProjectWorkspaceResult,
+  type GitBranchEntry,
+  type GitCommitDetails,
+  type GitCommitEntry,
+  type GitOverview,
+  type GitWorktreeEntry,
+  type LayoutName,
+  type Project,
+  type ReleaseNoteEntry,
+  type TrayIconName,
+  type ViewMode,
+} from "./types";
+import { createGitHistoryPanel } from "./ui/git-history";
+import { createProjectCard } from "./ui/project-card";
+import { createSettingsPanel } from "./ui/settings-panel";
 
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
 const TRAY_HINT_DISMISSED_KEY = "project-dashboard-hide-tray-hint";
@@ -155,20 +99,15 @@ const CARD_ACTION_OPTIONS = [
   description: string;
 }>;
 
-type ColorSchemeMode = "light" | "dark" | "system";
-type AppTheme = (typeof APP_THEME_OPTIONS)[number]["name"];
-
-type ReleaseNoteEntry = {
-  version: string;
-  items: string[];
-};
-
 const state = {
   projects: [] as Project[],
   settings: null as AppSettings | null,
   query: "",
   openingPath: "",
   creatingWorkspacePath: "",
+  creatingProjectWorkspace: false,
+  creatingGitWorktree: false,
+  pruningGitWorktrees: false,
   terminalPath: "",
   opencodePath: "",
   viewMode: loadViewMode(),
@@ -176,6 +115,8 @@ const state = {
   appTheme: "neon" as AppTheme,
   activeHistoryPath: "",
   activeHistoryBranch: "",
+  activeHistoryProjectName: "",
+  activeWorktrees: [] as GitWorktreeEntry[],
 };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -204,7 +145,24 @@ let historyOverviewEl: HTMLElement;
 let historyStatusEl: HTMLElement;
 let historyListEl: HTMLElement;
 let historyBranchSelectEl: HTMLSelectElement;
+let createProjectWorkspaceButtonEl: HTMLButtonElement;
+let createWorktreeButtonEl: HTMLButtonElement;
+let pruneWorktreesButtonEl: HTMLButtonElement;
+let worktreeListEl: HTMLElement;
+let staleWorktreeSectionEl: HTMLElement;
+let staleWorktreeListEl: HTMLElement;
 let historyChangesEl: HTMLElement;
+let createProjectWorkspaceModalEl: HTMLDialogElement;
+let createProjectWorkspaceCloseButtonEl: HTMLButtonElement;
+let createProjectWorkspaceFormEl: HTMLFormElement;
+let createProjectWorkspaceNameEl: HTMLInputElement;
+let createProjectWorkspaceStatusEl: HTMLElement;
+let createWorktreeModalEl: HTMLDialogElement;
+let createWorktreeCloseButtonEl: HTMLButtonElement;
+let createWorktreeFormEl: HTMLFormElement;
+let createWorktreeBranchNameEl: HTMLInputElement;
+let createWorktreePathPreviewEl: HTMLElement;
+let createWorktreeStatusEl: HTMLElement;
 let commitModalEl: HTMLDialogElement;
 let commitCloseButtonEl: HTMLButtonElement;
 let commitSubjectEl: HTMLElement;
@@ -234,6 +192,8 @@ let colorSchemeLightButtonEl: HTMLButtonElement;
 let colorSchemeDarkButtonEl: HTMLButtonElement;
 let colorSchemeSystemButtonEl: HTMLButtonElement;
 let systemThemeMediaQuery: MediaQueryList | null = null;
+let settingsPanel: ReturnType<typeof createSettingsPanel>;
+let gitHistoryPanel: ReturnType<typeof createGitHistoryPanel>;
 
 async function initializeApp() {
   void fetchAppVersion();
@@ -324,95 +284,7 @@ async function fetchSettings() {
 }
 
 function syncSettingsUi() {
-  if (!state.settings) {
-    return;
-  }
-
-  projectRootDisplayEl.textContent = state.settings.projectRoot;
-  projectRootInputEl.value = state.settings.projectRoot;
-  projectRootDefaultEl.textContent = `Default root: ${state.settings.defaultProjectRoot}`;
-  preferredTerminalSelectEl.value = state.settings.preferredTerminal;
-  syncCardActionSelects();
-  syncTrayIconToggle();
-  syncAppThemeToggle();
-  applyLayout();
-}
-
-function syncCardActionSelects() {
-  const selectedActions = state.settings?.cardActions ?? [];
-
-  for (const [index, select] of cardActionSelectEls.entries()) {
-    select.value = selectedActions[index] ?? "none";
-  }
-}
-
-function renderTrayIconOptions() {
-  trayIconOptionsEl.innerHTML = "";
-
-  for (const option of TRAY_ICON_OPTIONS) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "tray-icon-option";
-    button.dataset.trayIcon = option.name;
-
-    const preview = document.createElement("img");
-    preview.className = "tray-icon-preview";
-    preview.src = getTrayIconPreviewUri(option.name);
-    preview.alt = `${option.label} tray icon preview`;
-
-    const content = document.createElement("span");
-    content.className = "tray-icon-copy";
-
-    const title = document.createElement("span");
-    title.className = "tray-icon-title";
-    title.textContent = option.label;
-
-    const description = document.createElement("span");
-    description.className = "tray-icon-description";
-    description.textContent = option.description;
-
-    content.append(title, description);
-    button.append(preview, content);
-    button.addEventListener("click", async () => {
-      await saveTrayIcon(option.name);
-    });
-    trayIconOptionsEl.append(button);
-  }
-
-  syncTrayIconToggle();
-}
-
-function renderAppBrandIcons() {
-  const trayIconOption = TRAY_ICON_OPTIONS.find((option) => option.name === (state.settings?.trayIcon ?? "grid")) ?? TRAY_ICON_OPTIONS[0];
-
-  appBrandIconEl.innerHTML = "";
-  toolbarAppIconEl.innerHTML = "";
-
-  const headerPreview = document.createElement("img");
-  headerPreview.src = getTrayIconPreviewUri(trayIconOption.name);
-  headerPreview.alt = "";
-  headerPreview.className = "app-brand-icon-image";
-
-  const toolbarPreview = document.createElement("img");
-  toolbarPreview.src = getTrayIconPreviewUri(trayIconOption.name);
-  toolbarPreview.alt = "";
-  toolbarPreview.className = "toolbar-app-icon-image";
-
-  appBrandIconEl.append(headerPreview);
-  toolbarAppIconEl.append(toolbarPreview);
-}
-
-function syncTrayIconToggle() {
-  const selectedTrayIcon = state.settings?.trayIcon ?? "grid";
-  const buttons = trayIconOptionsEl.querySelectorAll<HTMLButtonElement>(".tray-icon-option");
-
-  for (const button of buttons) {
-    const isActive = button.dataset.trayIcon === selectedTrayIcon;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  }
-
-  renderAppBrandIcons();
+  settingsPanel.sync(state.settings, state.appTheme);
 }
 
 async function fetchProjects() {
@@ -462,7 +334,15 @@ function renderProjects() {
   }
 
   for (const project of filteredProjects) {
-    projectGridEl.append(createProjectCard(project));
+    projectGridEl.append(createProjectCard(project, {
+      cardActions: state.settings?.cardActions ?? [],
+      dateFormatter,
+      openInCode,
+      openInTerminal,
+      openInOpencode,
+      openGitHistory,
+      createDefaultWorkspace,
+    }));
   }
 
   syncBusyButtons();
@@ -483,586 +363,46 @@ function getFilteredProjects() {
   });
 }
 
-function createProjectCard(project: Project) {
-  const card = document.createElement("article");
-  card.className = "project-card";
-
-  const identity = document.createElement("div");
-  identity.className = "project-identity";
-
-  const titleRow = document.createElement("div");
-  titleRow.className = "project-title-row";
-
-  const projectIcon = document.createElement("div");
-  projectIcon.className = "project-icon";
-  projectIcon.append(createIcon(project.workspacePath ? "workspace" : "folder"));
-
-  const header = document.createElement("div");
-  header.className = "project-card-header";
-
-  const status = document.createElement("div");
-  status.className = "status-row";
-  if (project.workspacePath) {
-    status.append(
-      createStatusAction(
-        "workspace",
-        `Open ${project.name} workspace in VS Code`,
-        async () => {
-          await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
-        },
-      ),
-    );
-  } else {
-    status.append(
-      createStatusAction(
-        "workspace",
-        `Create default workspace for ${project.name}`,
-        async () => {
-          await createDefaultWorkspace(project);
-        },
-      ),
-    );
-  }
-
-  status.append(
-    createStatusAction(
-      "terminal",
-      `Open ${project.name} in Terminal`,
-      async () => {
-        await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
-      },
-    ),
-  );
-
-  status.append(
-    createStatusAction(
-      "opencode",
-      `Open ${project.name} with Opencode`,
-      async () => {
-        await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
-      },
-    ),
-  );
-
-  status.append(
-    createStatusAction(
-      "folder",
-      `Open ${project.name} folder in VS Code`,
-      async () => {
-        await openInCode(project.path, `Opened ${project.name} in VS Code.`);
-      },
-    ),
-  );
-
-  if (project.isGitRepo) {
-    status.append(
-      createStatusAction("git", `View git history for ${project.name}`, async () => {
-        await openGitHistory(project);
-      }),
-    );
-  }
-
-  const title = document.createElement("h3");
-  title.textContent = project.name;
-  title.className = "project-title";
-
-  titleRow.append(projectIcon, title);
-  identity.append(titleRow);
-  header.append(identity, status);
-
-  const detailsPanel = document.createElement("div");
-  detailsPanel.className = "project-details";
-
-  const detailsLabel = document.createElement("p");
-  detailsLabel.className = "detail-label";
-  detailsLabel.textContent = project.workspacePath ? "Workspace" : "Project Folder";
-
-  const detailsHeader = document.createElement("div");
-  detailsHeader.className = "detail-header";
-  detailsHeader.append(createIcon(project.workspacePath ? "workspace" : "folder", "detail-icon"), detailsLabel);
-
-  const detailValue = document.createElement("p");
-  detailValue.className = "project-detail-value";
-  detailValue.textContent = project.workspacePath ?? project.path;
-
-  if (project.techTags.length > 0) {
-    detailsPanel.append(createTechStrip(project.techTags));
-  }
-
-  const footer = document.createElement("div");
-  footer.className = "project-footer";
-
-  const modified = document.createElement("p");
-  modified.className = "project-modified";
-  modified.textContent = project.lastModifiedEpochMs
-    ? `Updated ${dateFormatter.format(project.lastModifiedEpochMs)}`
-    : "Modified time unavailable";
-
-  detailsPanel.prepend(detailsHeader, detailValue);
-
-  const actions = document.createElement("div");
-  actions.className = "project-actions";
-
-  const configuredActions = getProjectCardActions(project);
-
-  if (configuredActions.length > 0) {
-    const actionPanel = document.createElement("div");
-    actionPanel.className = "project-action-panel";
-
-    const actionLabel = document.createElement("p");
-    actionLabel.className = "detail-label";
-    actionLabel.textContent = "Open In";
-
-    for (const button of configuredActions) {
-      actions.append(button);
-    }
-
-    actionPanel.append(actionLabel, actions);
-    footer.append(actionPanel);
-  }
-
-  footer.append(modified);
-  card.append(header, detailsPanel, footer);
-  return card;
-}
-
-function getProjectCardActions(project: Project) {
-  const configuredActions = state.settings?.cardActions ?? [];
-  const resolvedActions: CardActionName[] = configuredActions.length > 0
-    ? configuredActions
-    : ["workspace", "opencode", "terminal"];
-
-  return resolvedActions
-    .map((actionName, index) => createConfiguredProjectAction(project, actionName, index === 0))
-    .filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement);
-}
-
-function createConfiguredProjectAction(project: Project, actionName: CardActionName, isPrimary: boolean) {
-  const variant = isPrimary ? "primary" : "secondary";
-
-  switch (actionName) {
-    case "workspace":
-      if (project.workspacePath) {
-        return createProjectActionButton(
-          "workspace",
-          "VS Code Workspace",
-          "Open the saved workspace in VS Code",
-          `Open ${project.name} workspace in VS Code`,
-          variant === "primary" ? "primary-action" : "secondary-action",
-          async () => {
-            await openInCode(project.workspacePath as string, `Opened ${project.name} workspace in VS Code.`);
-          },
-        );
-      }
-
-      return createProjectActionButton(
-        "workspace",
-        "Create Workspace",
-        "Create and open a default VS Code workspace",
-        `Create default workspace for ${project.name}`,
-        variant === "primary" ? "primary-action" : "secondary-action",
-        async () => {
-          await createDefaultWorkspace(project);
-        },
-      );
-    case "folder":
-      return createProjectActionButton(
-        "folder",
-        "VS Code Folder",
-        "Open the project folder in VS Code",
-        `Open ${project.name} folder in VS Code`,
-        variant === "primary" ? "primary-action folder-primary-action" : "secondary-action",
-        async () => {
-          await openInCode(project.path, `Opened ${project.name} in VS Code.`);
-        },
-      );
-    case "terminal":
-      return createProjectActionButton(
-        "terminal",
-        "Terminal",
-        "Open the project folder in your preferred terminal",
-        `Open ${project.name} in Terminal`,
-        variant === "primary" ? "primary-action" : "secondary-action",
-        async () => {
-          await openInTerminal(project.path, `Opened ${project.name} in Terminal.`);
-        },
-      );
-    case "opencode":
-      return createProjectActionButton(
-        "opencode",
-        "Opencode",
-        "Open the project folder in Opencode",
-        `Open ${project.name} with Opencode`,
-        variant === "primary" ? "primary-action" : "secondary-action",
-        async () => {
-          await openInOpencode(project.path, `Opened ${project.name} with Opencode.`);
-        },
-      );
-    case "git":
-      if (!project.isGitRepo) {
-        return null;
-      }
-
-      return createProjectActionButton(
-        "git",
-        "Git History",
-        "Open recent commits and branches",
-        `View git history for ${project.name}`,
-        variant === "primary" ? "primary-action" : "secondary-action",
-        async () => {
-          await openGitHistory(project);
-        },
-      );
-    case "none":
-    default:
-      return null;
-  }
-}
-
-function createTechStrip(tags: string[]) {
-  const techStrip = document.createElement("div");
-  techStrip.className = "tech-strip";
-
-  for (const tag of tags.slice(0, 4)) {
-    techStrip.append(createTechBadge(tag as TechIconName));
-  }
-
-  return techStrip;
-}
-
-function createTechBadge(tag: TechIconName) {
-  const chip = document.createElement("span");
-  chip.className = `tech-chip tech-${tag}`;
-  chip.append(createTechIcon(tag));
-  chip.title = formatTechLabel(tag);
-  chip.setAttribute("aria-label", formatTechLabel(tag));
-  return chip;
-}
-
-function createStatusAction(icon: IconName, label: string, onClick: () => Promise<void>, initiallyDisabled = false) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `status-action status-action-${icon}`;
-  button.append(createIcon(icon, "badge-icon"));
-  button.title = label;
-  button.setAttribute("aria-label", label);
-  button.dataset.baseDisabled = String(initiallyDisabled);
-  button.disabled = initiallyDisabled;
-  button.addEventListener("click", async () => {
-    await onClick();
-  });
-  return button;
-}
-
-function createProjectActionButton(
-  icon: IconName,
-  label: string,
-  description: string,
-  title: string,
-  className: string,
-  onClick: () => Promise<void>,
-) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.title = title;
-  button.setAttribute("aria-label", title);
-  button.dataset.baseDisabled = "false";
-
-  const iconBadge = document.createElement("span");
-  iconBadge.className = "project-action-icon";
-  iconBadge.append(createIcon(icon, "button-icon"));
-
-  const copy = document.createElement("span");
-  copy.className = "project-action-copy";
-
-  const labelText = document.createElement("span");
-  labelText.className = "project-action-label";
-  labelText.textContent = label;
-
-  const descriptionText = document.createElement("span");
-  descriptionText.className = "project-action-description";
-  descriptionText.textContent = description;
-
-  copy.append(labelText, descriptionText);
-  button.append(iconBadge, copy);
-  button.addEventListener("click", async () => {
-    await onClick();
-  });
-
-  return button;
-}
-
-function createIcon(name: IconName, className = "icon") {
-  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  icon.setAttribute("viewBox", "0 0 24 24");
-  icon.setAttribute("aria-hidden", "true");
-  icon.setAttribute("class", className);
-
-  const paths = getIconPaths(name);
-  for (const description of paths) {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", description.tag);
-    for (const [key, value] of Object.entries(description.attributes)) {
-      path.setAttribute(key, value);
-    }
-    icon.append(path);
-  }
-
-  return icon;
-}
-
-function createTechIcon(name: TechIconName) {
-  const icon = document.createElement("span");
-  icon.className = `tech-icon tech-icon-${name}`;
-  icon.textContent = getTechGlyph(name);
-  icon.setAttribute("aria-hidden", "true");
-  return icon;
-}
-
-function getIconPaths(name: IconName) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    "stroke-linecap": "round",
-    "stroke-linejoin": "round",
-    "stroke-width": "1.75",
-  };
-
-  switch (name) {
-    case "workspace":
-      return [
-        { tag: "rect", attributes: { ...common, x: "3", y: "4", width: "18", height: "16", rx: "3" } },
-        { tag: "path", attributes: { ...common, d: "M8 9h8" } },
-        { tag: "path", attributes: { ...common, d: "M8 13h3" } },
-        { tag: "path", attributes: { ...common, d: "M14.5 12.5l1.5 1.5 2.5-3" } },
-      ];
-    case "git":
-      return [
-        { tag: "path", attributes: { ...common, d: "M12 3 4 11l8 8 8-8-8-8Z" } },
-        { tag: "circle", attributes: { ...common, cx: "9", cy: "9", r: "1.25" } },
-        { tag: "circle", attributes: { ...common, cx: "15", cy: "15", r: "1.25" } },
-        { tag: "path", attributes: { ...common, d: "M10 10v4" } },
-        { tag: "path", attributes: { ...common, d: "M10 10l4 4" } },
-      ];
-    case "terminal":
-      return [
-        { tag: "rect", attributes: { ...common, x: "3", y: "5", width: "18", height: "14", rx: "2.5" } },
-        { tag: "path", attributes: { ...common, d: "M7.5 10.5 10 12l-2.5 1.5" } },
-        { tag: "path", attributes: { ...common, d: "M12.5 14.5h4" } },
-      ];
-    case "opencode":
-      return [
-        { tag: "rect", attributes: { ...common, x: "3", y: "5", width: "18", height: "14", rx: "2.5" } },
-        { tag: "path", attributes: { ...common, d: "M8 9.5 5.5 12 8 14.5" } },
-        { tag: "path", attributes: { ...common, d: "M16 9.5 18.5 12 16 14.5" } },
-        { tag: "path", attributes: { ...common, d: "M10.5 16l3-8" } },
-      ];
-    case "folder":
-    default:
-      return [
-        { tag: "path", attributes: { ...common, d: "M3.5 8.5A2.5 2.5 0 0 1 6 6h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5V16A2.5 2.5 0 0 1 18 18.5H6A2.5 2.5 0 0 1 3.5 16Z" } },
-      ];
-  }
-}
-
-function getTechGlyph(name: TechIconName) {
-  switch (name) {
-    case "node": return "N";
-    case "bun": return "B";
-    case "pnpm": return "P";
-    case "yarn": return "Y";
-    case "deno": return "D";
-    case "rust": return "R";
-    case "python": return "Py";
-    case "go": return "Go";
-    case "php": return "Php";
-    case "ruby": return "Rb";
-    case "dart": return "Dt";
-    case "java": return "Jv";
-    case "cpp": return "C++";
-    case "dotnet": return ".N";
-  }
-}
-
-function formatTechLabel(tag: TechIconName) {
-  switch (tag) {
-    case "dotnet":
-      return ".NET";
-    case "cpp":
-      return "C++";
-    default:
-      return tag.charAt(0).toUpperCase() + tag.slice(1);
-  }
-}
-
 async function openGitHistory(project: Project) {
   state.activeHistoryPath = project.path;
-  historyProjectNameEl.textContent = `${project.name} commits`;
-  historyStatusEl.textContent = "Loading branches...";
-  historyListEl.innerHTML = "";
-  historyOverviewEl.textContent = "";
-  historyBranchSelectEl.disabled = true;
-  historyBranchSelectEl.innerHTML = "";
-  historyChangesEl.innerHTML = "";
-
-  if (!historyModalEl.open) {
-    document.body.classList.add("modal-open");
-    historyModalEl.showModal();
-  }
+  state.activeHistoryProjectName = project.name;
+  gitHistoryPanel.prepare(project.name);
 
   try {
-    const [branches, overview] = await Promise.all([
+    const [branches, overview, worktrees] = await Promise.all([
       invoke<GitBranchEntry[]>("list_git_branches", { projectPath: project.path }),
       invoke<GitOverview>("get_git_overview", { projectPath: project.path }),
+      invoke<GitWorktreeEntry[]>("list_git_worktrees", { projectPath: project.path }),
     ]);
 
-    renderBranchOptions(branches);
-    renderGitOverview(overview);
+    gitHistoryPanel.renderBranchOptions(branches);
+    gitHistoryPanel.renderOverview(overview);
+    gitHistoryPanel.renderWorktrees(worktrees, state.pruningGitWorktrees);
 
     const currentBranch = overview.currentBranch || branches.find((branch) => branch.isCurrent)?.name || branches[0]?.name || "HEAD";
     state.activeHistoryBranch = currentBranch;
-    historyBranchSelectEl.value = currentBranch;
+    gitHistoryPanel.selectBranch(currentBranch);
 
     await loadGitHistory(project.path, currentBranch);
   } catch (error) {
-    historyStatusEl.textContent = String(error);
-    historyStatusEl.dataset.state = "error";
+    gitHistoryPanel.setStatus(String(error), true);
     historyBranchSelectEl.disabled = true;
-  }
-}
-
-function renderBranchOptions(branches: GitBranchEntry[]) {
-  historyBranchSelectEl.innerHTML = "";
-
-  if (branches.length === 0) {
-    const option = document.createElement("option");
-    option.value = "HEAD";
-    option.textContent = "No local branches found";
-    historyBranchSelectEl.append(option);
-    historyBranchSelectEl.disabled = true;
-    return;
-  }
-
-  for (const branch of branches) {
-    const option = document.createElement("option");
-    option.value = branch.name;
-    option.textContent = branch.isCurrent ? `${branch.name} (current)` : branch.name;
-    historyBranchSelectEl.append(option);
-  }
-
-  historyBranchSelectEl.disabled = false;
-}
-
-function renderGitOverview(overview: GitOverview) {
-  const upstream = overview.upstreamBranch ? `Upstream ${overview.upstreamBranch}` : "No upstream";
-  const sync = overview.upstreamBranch ? `Ahead ${overview.aheadCount} / Behind ${overview.behindCount}` : "Local only";
-  const dirty = overview.isDirty ? "Dirty" : "Clean";
-  historyOverviewEl.textContent = `${overview.currentBranch} - ${upstream} - ${sync} - ${dirty}`;
-  renderGitChanges(overview.changedFiles);
-}
-
-function renderGitChanges(changedFiles: GitChangedFile[]) {
-  historyChangesEl.innerHTML = "";
-
-  if (changedFiles.length === 0) {
-    return;
-  }
-
-  const sections: Array<{ title: string; status: GitChangedFile["status"] }> = [
-    { title: "Staged files", status: "staged" },
-    { title: "Modified files", status: "modified" },
-    { title: "Untracked files", status: "untracked" },
-  ];
-
-  for (const section of sections) {
-    const files = changedFiles.filter((file) => file.status === section.status);
-
-    if (files.length === 0) {
-      continue;
-    }
-
-    const group = document.createElement("section");
-    group.className = "history-change-group";
-
-    const heading = document.createElement("p");
-    heading.className = "history-change-heading";
-    heading.textContent = `${section.title} (${files.length})`;
-
-    const list = document.createElement("ul");
-    list.className = "history-change-list";
-
-    for (const file of files) {
-      const item = document.createElement("li");
-      item.className = "history-change-item";
-
-      const badge = document.createElement("span");
-      badge.className = "history-change-badge";
-      badge.textContent = file.badge;
-
-      const path = document.createElement("span");
-      path.className = "history-change-path";
-      path.textContent = file.path;
-
-      item.append(badge, path);
-      list.append(item);
-    }
-
-    group.append(heading, list);
-    historyChangesEl.append(group);
+    worktreeListEl.innerHTML = "";
   }
 }
 
 async function loadGitHistory(projectPath: string, branchName: string) {
-  historyStatusEl.dataset.state = "default";
-  historyStatusEl.textContent = `Loading commits from ${branchName}...`;
+  gitHistoryPanel.setStatus(`Loading commits from ${branchName}...`);
   historyListEl.innerHTML = "";
 
   try {
     const commits = await invoke<GitCommitEntry[]>("get_git_history", { projectPath, branchName });
-    renderGitHistory(commits);
-    historyStatusEl.textContent = commits.length > 0
+    gitHistoryPanel.renderHistory(commits);
+    gitHistoryPanel.setStatus(commits.length > 0
       ? `Showing ${commits.length} recent commits from ${branchName}.`
-      : `No commits found on ${branchName}.`;
+      : `No commits found on ${branchName}.`);
   } catch (error) {
-    historyStatusEl.textContent = String(error);
-    historyStatusEl.dataset.state = "error";
-  }
-}
-
-function renderGitHistory(commits: GitCommitEntry[]) {
-  historyListEl.innerHTML = "";
-  historyStatusEl.dataset.state = "default";
-
-  if (commits.length === 0) {
-    const emptyState = document.createElement("div");
-    emptyState.className = "history-empty";
-    emptyState.textContent = "No git commits were returned for this repository.";
-    historyListEl.append(emptyState);
-    return;
-  }
-
-  for (const commit of commits) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "history-item";
-
-    const hash = document.createElement("span");
-    hash.className = "history-hash";
-    hash.textContent = commit.shortHash;
-
-    const subject = document.createElement("p");
-    subject.className = "history-subject";
-    subject.textContent = commit.subject;
-
-    const time = document.createElement("p");
-    time.className = "history-time";
-    time.textContent = commit.relativeTime;
-
-    item.append(hash, subject, time);
-    item.addEventListener("click", async () => {
-      await openCommitDetails(commit.shortHash);
-    });
-    historyListEl.append(item);
+    gitHistoryPanel.setStatus(String(error), true);
   }
 }
 
@@ -1071,13 +411,7 @@ async function openCommitDetails(commitRef: string) {
     return;
   }
 
-  commitSubjectEl.textContent = "Loading commit...";
-  commitMetaEl.textContent = "";
-  commitBodyEl.textContent = "";
-
-  if (!commitModalEl.open) {
-    commitModalEl.showModal();
-  }
+  gitHistoryPanel.openCommitLoading();
 
   try {
     const details = await invoke<GitCommitDetails>("get_git_commit_details", {
@@ -1085,13 +419,9 @@ async function openCommitDetails(commitRef: string) {
       commitRef,
     });
 
-    commitSubjectEl.textContent = details.subject;
-    commitMetaEl.textContent = `${details.shortHash} - ${details.authorName} <${details.authorEmail}> - ${details.authoredRelativeTime}`;
-    commitBodyEl.textContent = details.body || "No commit body.";
+    gitHistoryPanel.renderCommitDetails(details);
   } catch (error) {
-    commitSubjectEl.textContent = "Could not load commit";
-    commitMetaEl.textContent = String(error);
-    commitBodyEl.textContent = "";
+    gitHistoryPanel.renderCommitError(String(error));
   }
 }
 
@@ -1139,41 +469,7 @@ function applyColorSchemeMode() {
   const resolvedColorSchemeMode = getResolvedColorSchemeMode();
   document.documentElement.dataset.theme = resolvedColorSchemeMode;
   document.documentElement.style.colorScheme = resolvedColorSchemeMode;
-
-  const isLight = state.colorSchemeMode === "light";
-  const isDark = state.colorSchemeMode === "dark";
-  const isSystem = state.colorSchemeMode === "system";
-  colorSchemeLightButtonEl.classList.toggle("is-active", isLight);
-  colorSchemeDarkButtonEl.classList.toggle("is-active", isDark);
-  colorSchemeSystemButtonEl.classList.toggle("is-active", isSystem);
-  colorSchemeLightButtonEl.setAttribute("aria-pressed", String(isLight));
-  colorSchemeDarkButtonEl.setAttribute("aria-pressed", String(isDark));
-  colorSchemeSystemButtonEl.setAttribute("aria-pressed", String(isSystem));
-  colorSchemeSystemButtonEl.textContent = `System (${resolvedColorSchemeMode === "dark" ? "Dark" : "Light"})`;
-}
-
-function syncAppThemeToggle() {
-  state.appTheme = state.settings?.appTheme ?? "neon";
-  document.documentElement.dataset.appTheme = state.appTheme;
-
-  for (const button of appThemeButtonEls) {
-    const buttonTheme = button.dataset.appThemeValue;
-    const isActive = buttonTheme === state.appTheme;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  }
-}
-
-function applyLayout() {
-  const layout = state.settings?.layout ?? "standard";
-  document.documentElement.dataset.layout = layout === "sidebar-dock" ? "sidebar" : "standard";
-
-  for (const button of layoutButtonEls) {
-    const buttonLayout = button.dataset.layoutValue;
-    const isActive = buttonLayout === layout;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  }
+  settingsPanel.syncColorScheme(state.colorSchemeMode, resolvedColorSchemeMode);
 }
 
 function setColorSchemeMode(colorSchemeMode: ColorSchemeMode) {
@@ -1188,8 +484,6 @@ async function saveAppTheme(appTheme: AppTheme) {
   try {
     state.settings = await invoke<AppSettings>("update_app_theme", { appTheme });
     syncSettingsUi();
-    renderTrayIconOptions();
-    renderAppBrandIcons();
     setSettingsStatus("App theme updated.");
   } catch (error) {
     setSettingsStatus(String(error), true);
@@ -1270,10 +564,152 @@ async function createDefaultWorkspace(project: Project) {
   }
 }
 
+function openCreateProjectWorkspaceModal() {
+  createProjectWorkspaceNameEl.value = "";
+  setCreateProjectWorkspaceStatus("");
+  createProjectWorkspaceModalEl.showModal();
+}
+
+function openCreateWorktreeModal() {
+  createWorktreeBranchNameEl.value = "";
+  updateCreateWorktreePreview();
+  setCreateWorktreeStatus("");
+  createWorktreeModalEl.showModal();
+}
+
+function setCreateProjectWorkspaceStatus(message: string, isError = false) {
+  createProjectWorkspaceStatusEl.textContent = message;
+  createProjectWorkspaceStatusEl.dataset.state = isError ? "error" : "default";
+}
+
+function setCreateWorktreeStatus(message: string, isError = false) {
+  createWorktreeStatusEl.textContent = message;
+  createWorktreeStatusEl.dataset.state = isError ? "error" : "default";
+}
+
+function sanitizeName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._\-/\s]+/g, "")
+    .replace(/[\s/_.-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function updateCreateWorktreePreview() {
+  const branchName = sanitizeName(createWorktreeBranchNameEl.value);
+  const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
+  const repoName = activeProject ? sanitizeName(activeProject.name) : "project";
+
+  if (!branchName) {
+    createWorktreePathPreviewEl.textContent = "Folder name will be generated after you enter a branch.";
+    return;
+  }
+
+  createWorktreePathPreviewEl.textContent = `Folder: ${repoName}-${branchName}`;
+}
+
+async function submitCreateProjectWorkspace() {
+  const projectName = createProjectWorkspaceNameEl.value.trim();
+
+  if (!projectName) {
+    setCreateProjectWorkspaceStatus("Enter a project name first.", true);
+    return;
+  }
+
+  state.creatingProjectWorkspace = true;
+  syncBusyButtons();
+  setCreateProjectWorkspaceStatus("Creating project workspace...");
+
+  try {
+    const result = await invoke<CreateProjectWorkspaceResult>("create_project_workspace", { projectName });
+    await fetchProjects();
+    createProjectWorkspaceModalEl.close();
+    setStatus(`Created ${result.projectPath} with a default workspace.`);
+    await openInCode(result.workspacePath, `Opened ${projectName} workspace in VS Code.`);
+  } catch (error) {
+    setCreateProjectWorkspaceStatus(String(error), true);
+  } finally {
+    state.creatingProjectWorkspace = false;
+    syncBusyButtons();
+  }
+}
+
+async function submitCreateWorktree() {
+  const branchName = createWorktreeBranchNameEl.value.trim();
+
+  if (!state.activeHistoryPath) {
+    setCreateWorktreeStatus("Open a repository first.", true);
+    return;
+  }
+
+  if (!branchName) {
+    setCreateWorktreeStatus("Enter a branch name first.", true);
+    return;
+  }
+
+  state.creatingGitWorktree = true;
+  syncBusyButtons();
+  setCreateWorktreeStatus("Creating git worktree...");
+
+  try {
+    const result = await invoke<CreateGitWorktreeResult>("create_git_worktree", {
+      sourceProjectPath: state.activeHistoryPath,
+      branchName,
+    });
+    await fetchProjects();
+    const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
+    if (activeProject) {
+      await openGitHistory(activeProject);
+    }
+    createWorktreeModalEl.close();
+    setStatus(`Created ${result.branch} worktree at ${result.projectPath}.`);
+    if (result.workspacePath) {
+      await openInCode(result.workspacePath, `Opened ${result.branch} workspace in VS Code.`);
+    }
+  } catch (error) {
+    setCreateWorktreeStatus(String(error), true);
+  } finally {
+    state.creatingGitWorktree = false;
+    syncBusyButtons();
+  }
+}
+
+async function pruneGitWorktrees() {
+  if (!state.activeHistoryPath) {
+    return;
+  }
+
+  state.pruningGitWorktrees = true;
+  syncBusyButtons();
+  historyStatusEl.dataset.state = "default";
+  historyStatusEl.textContent = "Pruning stale worktrees...";
+
+  try {
+    await invoke("prune_git_worktrees", { projectPath: state.activeHistoryPath });
+    const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
+    await fetchProjects();
+    if (activeProject) {
+      const refreshedProject = state.projects.find((project) => project.path === activeProject.path) ?? activeProject;
+      await openGitHistory(refreshedProject);
+    }
+    setStatus("Pruned stale git worktrees.");
+  } catch (error) {
+    historyStatusEl.dataset.state = "error";
+    historyStatusEl.textContent = String(error);
+  } finally {
+    state.pruningGitWorktrees = false;
+    syncBusyButtons();
+  }
+}
+
 function syncBusyButtons() {
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button");
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button, .history-actions button, .worktree-action-button, .create-form button");
   const isBusy = state.openingPath.length > 0
     || state.creatingWorkspacePath.length > 0
+    || state.creatingProjectWorkspace
+    || state.creatingGitWorktree
+    || state.pruningGitWorktrees
     || state.terminalPath.length > 0
     || state.opencodePath.length > 0;
 
@@ -1289,8 +725,7 @@ function setStatus(message: string, isError = false) {
 }
 
 function setSettingsStatus(message: string, isError = false) {
-  settingsStatusEl.textContent = message;
-  settingsStatusEl.dataset.state = isError ? "error" : "default";
+  settingsPanel.setStatus(message, isError);
 }
 
 async function saveCardActions(cardActions: CardActionName[]) {
@@ -1346,16 +781,7 @@ function openReleaseNotes() {
 }
 
 function openSettings() {
-  if (!state.settings) {
-    return;
-  }
-
-  projectRootInputEl.value = state.settings.projectRoot;
-  preferredTerminalSelectEl.value = state.settings.preferredTerminal;
-  syncCardActionSelects();
-  applyLayout();
-  setSettingsStatus("");
-  settingsModalEl.showModal();
+  settingsPanel.open(state.settings, state.appTheme);
 }
 
 async function saveProjectRoot(projectRoot: string) {
@@ -1438,7 +864,24 @@ window.addEventListener("DOMContentLoaded", () => {
   historyStatusEl = document.querySelector("#history-status") as HTMLElement;
   historyListEl = document.querySelector("#history-list") as HTMLElement;
   historyBranchSelectEl = document.querySelector("#history-branch-select") as HTMLSelectElement;
+  createProjectWorkspaceButtonEl = document.querySelector("#create-project-workspace-button") as HTMLButtonElement;
+  createWorktreeButtonEl = document.querySelector("#create-worktree-button") as HTMLButtonElement;
+  pruneWorktreesButtonEl = document.querySelector("#prune-worktrees-button") as HTMLButtonElement;
+  worktreeListEl = document.querySelector("#worktree-list") as HTMLElement;
+  staleWorktreeSectionEl = document.querySelector("#stale-worktree-section") as HTMLElement;
+  staleWorktreeListEl = document.querySelector("#stale-worktree-list") as HTMLElement;
   historyChangesEl = document.querySelector("#history-changes") as HTMLElement;
+  createProjectWorkspaceModalEl = document.querySelector("#create-project-workspace-modal") as HTMLDialogElement;
+  createProjectWorkspaceCloseButtonEl = document.querySelector("#create-project-workspace-close") as HTMLButtonElement;
+  createProjectWorkspaceFormEl = document.querySelector("#create-project-workspace-form") as HTMLFormElement;
+  createProjectWorkspaceNameEl = document.querySelector("#create-project-workspace-name") as HTMLInputElement;
+  createProjectWorkspaceStatusEl = document.querySelector("#create-project-workspace-status") as HTMLElement;
+  createWorktreeModalEl = document.querySelector("#create-worktree-modal") as HTMLDialogElement;
+  createWorktreeCloseButtonEl = document.querySelector("#create-worktree-close") as HTMLButtonElement;
+  createWorktreeFormEl = document.querySelector("#create-worktree-form") as HTMLFormElement;
+  createWorktreeBranchNameEl = document.querySelector("#create-worktree-branch-name") as HTMLInputElement;
+  createWorktreePathPreviewEl = document.querySelector("#create-worktree-path-preview") as HTMLElement;
+  createWorktreeStatusEl = document.querySelector("#create-worktree-status") as HTMLElement;
   commitModalEl = document.querySelector("#commit-modal") as HTMLDialogElement;
   commitCloseButtonEl = document.querySelector("#commit-close") as HTMLButtonElement;
   commitSubjectEl = document.querySelector("#commit-subject") as HTMLElement;
@@ -1468,8 +911,57 @@ window.addEventListener("DOMContentLoaded", () => {
   colorSchemeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
   colorSchemeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
 
-  renderTrayIconOptions();
-  renderAppBrandIcons();
+  settingsPanel = createSettingsPanel({
+    appBrandIcon: appBrandIconEl,
+    toolbarAppIcon: toolbarAppIconEl,
+    projectRootDisplay: projectRootDisplayEl,
+    projectRootInput: projectRootInputEl,
+    projectRootDefault: projectRootDefaultEl,
+    preferredTerminalSelect: preferredTerminalSelectEl,
+    trayIconOptions: trayIconOptionsEl,
+    cardActionSelects: cardActionSelectEls,
+    layoutButtons: layoutButtonEls,
+    settingsStatus: settingsStatusEl,
+    projectRootReset: projectRootResetEl,
+    appThemeButtons: appThemeButtonEls,
+    colorSchemeLightButton: colorSchemeLightButtonEl,
+    colorSchemeDarkButton: colorSchemeDarkButtonEl,
+    colorSchemeSystemButton: colorSchemeSystemButtonEl,
+    settingsModal: settingsModalEl,
+  }, {
+    trayIconOptions: TRAY_ICON_OPTIONS,
+    onTrayIconSelect: saveTrayIcon,
+  });
+
+  gitHistoryPanel = createGitHistoryPanel({
+    historyModal: historyModalEl,
+    historyProjectName: historyProjectNameEl,
+    historyOverview: historyOverviewEl,
+    historyStatus: historyStatusEl,
+    historyList: historyListEl,
+    historyBranchSelect: historyBranchSelectEl,
+    createWorktreeButton: createWorktreeButtonEl,
+    pruneWorktreesButton: pruneWorktreesButtonEl,
+    worktreeList: worktreeListEl,
+    staleWorktreeSection: staleWorktreeSectionEl,
+    staleWorktreeList: staleWorktreeListEl,
+    historyChanges: historyChangesEl,
+    commitModal: commitModalEl,
+    commitSubject: commitSubjectEl,
+    commitMeta: commitMetaEl,
+    commitBody: commitBodyEl,
+  }, {
+    onOpenWorktree: async (worktree) => {
+      if (worktree.workspacePath) {
+        await openInCode(worktree.workspacePath, `Opened ${worktree.name} workspace in VS Code.`);
+      } else {
+        await openInCode(worktree.path, `Opened ${worktree.name} in VS Code.`);
+      }
+    },
+    onOpenCommitDetails: async (commitRef) => {
+      await openCommitDetails(commitRef);
+    },
+  });
 
   searchInputEl.addEventListener("input", (event) => {
     state.query = (event.target as HTMLInputElement).value;
@@ -1577,16 +1069,46 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  createProjectWorkspaceButtonEl.addEventListener("click", () => {
+    openCreateProjectWorkspaceModal();
+  });
+
+  createWorktreeButtonEl.addEventListener("click", () => {
+    openCreateWorktreeModal();
+  });
+
+  pruneWorktreesButtonEl.addEventListener("click", async () => {
+    await pruneGitWorktrees();
+  });
+
+  createProjectWorkspaceCloseButtonEl.addEventListener("click", () => {
+    createProjectWorkspaceModalEl.close();
+  });
+
+  createWorktreeCloseButtonEl.addEventListener("click", () => {
+    createWorktreeModalEl.close();
+  });
+
+  createProjectWorkspaceFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitCreateProjectWorkspace();
+  });
+
+  createWorktreeFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitCreateWorktree();
+  });
+
+  createWorktreeBranchNameEl.addEventListener("input", () => {
+    updateCreateWorktreePreview();
+  });
+
   historyModalEl.addEventListener("close", () => {
-    document.body.classList.remove("modal-open");
     state.activeHistoryPath = "";
+    state.activeHistoryProjectName = "";
     state.activeHistoryBranch = "";
-    historyOverviewEl.textContent = "";
-    historyStatusEl.dataset.state = "default";
-    historyStatusEl.textContent = "";
-    historyChangesEl.innerHTML = "";
-    historyListEl.innerHTML = "";
-    historyBranchSelectEl.innerHTML = "";
+    state.activeWorktrees = [];
+    gitHistoryPanel.reset();
   });
 
   commitCloseButtonEl.addEventListener("click", () => {
@@ -1627,39 +1149,4 @@ function isCardActionName(value: string): value is CardActionName {
 
 function isLayoutName(value: string | undefined): value is LayoutName {
   return value === "standard" || value === "sidebar-dock";
-}
-
-function getTrayIconPreviewUri(iconName: TrayIconName) {
-  const svg = getTrayIconSvg(iconName, state.settings?.appTheme ?? state.appTheme);
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function getTrayIconSvg(iconName: TrayIconName, appTheme: AppTheme) {
-  const palette = getTrayIconPalette(appTheme);
-
-  switch (iconName) {
-    case "orbit":
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="24" fill="${palette.base}"/><path d="M19 32c0-7.18 5.82-13 13-13 3.99 0 7.56 1.8 9.94 4.64" stroke="${palette.accent}" stroke-width="6" stroke-linecap="round"/><path d="M45 32c0 7.18-5.82 13-13 13-3.99 0-7.56-1.8-9.94-4.64" stroke="${palette.foreground}" stroke-width="6" stroke-linecap="round"/><circle cx="45" cy="25" r="4" fill="${palette.foreground}"/><circle cx="19" cy="39" r="4" fill="${palette.accent}"/></svg>`;
-    case "stacks":
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x="14" y="14" width="36" height="36" rx="10" fill="${palette.base}"/><path d="M23 24h18" stroke="${palette.foreground}" stroke-width="5" stroke-linecap="round"/><path d="M23 32h18" stroke="${palette.accent}" stroke-width="5" stroke-linecap="round"/><path d="M23 40h12" stroke="${palette.foreground}" stroke-width="5" stroke-linecap="round"/><path d="M46 18v28" stroke="${palette.accent}" stroke-width="4" stroke-linecap="round"/></svg>`;
-    case "grid":
-    default:
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><rect x="10" y="10" width="44" height="44" rx="14" fill="${palette.base}"/><rect x="18" y="18" width="10" height="10" rx="3" fill="${palette.foreground}"/><rect x="36" y="18" width="10" height="10" rx="3" fill="${palette.accent}"/><rect x="18" y="36" width="10" height="10" rx="3" fill="${palette.accent}"/><rect x="36" y="36" width="10" height="10" rx="3" fill="${palette.foreground}"/></svg>`;
-  }
-}
-
-function getTrayIconPalette(appTheme: AppTheme) {
-  switch (appTheme) {
-    case "ember":
-      return { base: "#7f3115", foreground: "#fff8f0", accent: "#e0894c" };
-    case "fjord":
-      return { base: "#14344a", foreground: "#f6fcff", accent: "#59d9dd" };
-    case "signal":
-      return { base: "#1f2330", foreground: "#fff9f2", accent: "#f3c854" };
-    case "default":
-      return { base: "#274c46", foreground: "#f3f7f4", accent: "#93d7c0" };
-    case "neon":
-    default:
-      return { base: "#111827", foreground: "#fdf2f8", accent: "#00d2ff" };
-  }
 }
