@@ -290,6 +290,7 @@ async function fetchSettings() {
 }
 
 function syncSettingsUi() {
+  state.appTheme = state.settings?.appTheme ?? state.appTheme;
   settingsPanel.sync(state.settings, state.appTheme);
 }
 
@@ -643,7 +644,7 @@ function openReleaseNotes() {
 }
 
 function openSettings() {
-  settingsPanel.open(state.settings, state.appTheme);
+  settingsPanel.open(state.settings, state.settings?.appTheme ?? state.appTheme);
 }
 
 async function saveProjectRoot(projectRoot: string) {

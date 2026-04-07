@@ -656,10 +656,23 @@ button:disabled {
   border-color: transparent;
 }
 
+.project-actions .primary-action .project-action-label,
+.project-actions .primary-action .project-action-description {
+  color: var(--primary-button-text);
+}
+
 .project-actions .secondary-action {
   background: var(--panel-strong);
   color: var(--text);
   border-color: var(--border-strong);
+}
+
+.project-actions .secondary-action .project-action-label {
+  color: var(--text);
+}
+
+.project-actions .secondary-action .project-action-description {
+  color: color-mix(in srgb, var(--text) 68%, var(--muted) 32%);
 }
 
 .project-actions .primary-action:hover:not(:disabled) {
@@ -673,6 +686,11 @@ button:disabled {
 
 .project-actions .folder-primary-action {
   background: var(--folder-soft);
+  color: var(--folder-text);
+}
+
+.project-actions .folder-primary-action .project-action-label,
+.project-actions .folder-primary-action .project-action-description {
   color: var(--folder-text);
 }
 
@@ -711,7 +729,7 @@ button:disabled {
 .project-action-description {
   font-size: 0.8rem;
   line-height: 1.25;
-  opacity: 0.82;
+  opacity: 1;
 }
 
 .empty-state {
@@ -1001,8 +1019,13 @@ button:disabled {
 }
 
 .button-secondary {
-  background: var(--panel-strong);
+  background: color-mix(in srgb, var(--panel-strong) 82%, var(--accent-soft) 18%);
   color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--panel-strong) 68%, var(--accent-soft) 32%);
 }
 
 .history-item {

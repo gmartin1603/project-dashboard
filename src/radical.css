@@ -136,6 +136,57 @@
   color: var(--theme-secondary-muted) !important;
 }
 
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action .project-action-description,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action .project-action-description,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action .project-action-description {
+  color: #ff007f !important;
+}
+
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(255, 0, 127, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action:hover:not(:disabled),
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action:hover:not(:disabled),
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff007f, #00d2ff) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-description,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action:hover:not(:disabled) .project-action-label,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action:hover:not(:disabled) .project-action-description {
+  color: #ffffff !important;
+}
+
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action .project-action-icon,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action .project-action-icon,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action .project-action-icon {
+  color: #ff007f !important;
+  background: rgba(255, 0, 127, 0.12) !important;
+}
+
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .folder-primary-action:hover:not(:disabled) .project-action-icon,
+:root[data-app-theme="neon"][data-theme="light"] .project-actions .secondary-action:hover:not(:disabled) .project-action-icon {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
 :root[data-app-theme="neon"] .history-item,
 :root[data-app-theme="neon"] .tray-icon-option,
 :root[data-app-theme="neon"] .tray-icon-title,
