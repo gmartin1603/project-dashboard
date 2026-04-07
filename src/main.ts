@@ -21,8 +21,11 @@ import {
   type TrayIconName,
   type ViewMode,
 } from "./types";
+import { createCommandCenter } from "./ui/command-center";
+import { createCreateFlowController } from "./ui/create-flow";
 import { createGitHistoryPanel } from "./ui/git-history";
 import { createProjectCard } from "./ui/project-card";
+import { createProjectsPanel } from "./ui/projects-panel";
 import { createSettingsPanel } from "./ui/settings-panel";
 
 const VIEW_STORAGE_KEY = "project-dashboard-view-mode";
@@ -192,8 +195,11 @@ let colorSchemeLightButtonEl: HTMLButtonElement;
 let colorSchemeDarkButtonEl: HTMLButtonElement;
 let colorSchemeSystemButtonEl: HTMLButtonElement;
 let systemThemeMediaQuery: MediaQueryList | null = null;
+let commandCenter: ReturnType<typeof createCommandCenter>;
+let createFlowController: ReturnType<typeof createCreateFlowController>;
 let settingsPanel: ReturnType<typeof createSettingsPanel>;
 let gitHistoryPanel: ReturnType<typeof createGitHistoryPanel>;
+let projectsPanel: ReturnType<typeof createProjectsPanel>;
 
 async function initializeApp() {
   void fetchAppVersion();
@@ -297,15 +303,7 @@ async function fetchProjects() {
     const projectRoot = state.settings?.projectRoot ?? "your configured root";
     setStatus(`Loaded ${state.projects.length} projects from ${projectRoot}.`);
   } catch (error) {
-    projectGridEl.innerHTML = "";
-    const emptyState = document.createElement("div");
-    emptyState.className = "empty-state";
-    emptyState.innerHTML = `
-      <p class="empty-eyebrow">Could not load projects</p>
-      <h2>Check the configured project root.</h2>
-      <p>${String(error)}</p>
-    `;
-    projectGridEl.append(emptyState);
+    projectsPanel.renderLoadError(String(error));
     setStatus("Project scan failed.", true);
   } finally {
     refreshButtonEl.disabled = false;
@@ -314,27 +312,7 @@ async function fetchProjects() {
 
 function renderProjects() {
   const filteredProjects = getFilteredProjects();
-  projectGridEl.innerHTML = "";
-  projectGridEl.dataset.viewMode = state.viewMode;
-  projectCountEl.textContent = `${filteredProjects.length} visible`;
-  workspaceCountEl.textContent = `${state.projects.filter((project) => project.hasWorkspace).length} with workspaces`;
-  syncViewToggle();
-
-  if (filteredProjects.length === 0) {
-    const emptyState = document.createElement("div");
-    emptyState.className = "empty-state";
-    emptyState.innerHTML = `
-      <p class="empty-eyebrow">No matches</p>
-      <h2>Try a different project name or update the configured root.</h2>
-      <p>Your search checks names, folders, and workspace files.</p>
-    `;
-    projectGridEl.append(emptyState);
-    syncBusyButtons();
-    return;
-  }
-
-  for (const project of filteredProjects) {
-    projectGridEl.append(createProjectCard(project, {
+  projectsPanel.renderProjects(filteredProjects, state.projects, state.viewMode, (project) => createProjectCard(project, {
       cardActions: state.settings?.cardActions ?? [],
       dateFormatter,
       openInCode,
@@ -343,7 +321,6 @@ function renderProjects() {
       openGitHistory,
       createDefaultWorkspace,
     }));
-  }
 
   syncBusyButtons();
 }
@@ -436,14 +413,6 @@ function setViewMode(viewMode: ViewMode) {
   renderProjects();
 }
 
-function syncViewToggle() {
-  const isDetailed = state.viewMode === "detailed";
-  viewDetailedButtonEl.classList.toggle("is-active", isDetailed);
-  viewCompactButtonEl.classList.toggle("is-active", !isDetailed);
-  viewDetailedButtonEl.setAttribute("aria-pressed", String(isDetailed));
-  viewCompactButtonEl.setAttribute("aria-pressed", String(!isDetailed));
-}
-
 function loadColorSchemeMode(): ColorSchemeMode {
   const stored = window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY);
   if (stored === "light" || stored === "dark" || stored === "system") {
@@ -500,135 +469,41 @@ function syncSystemThemeListener() {
 }
 
 async function openInCode(targetPath: string, message: string) {
-  state.openingPath = targetPath;
-  syncBusyButtons();
-  setStatus(`Launching VS Code for ${targetPath}...`);
-
-  try {
-    await invoke("open_in_code", { targetPath });
-    setStatus(message);
-  } catch (error) {
-    setStatus(String(error), true);
-  } finally {
-    state.openingPath = "";
-    syncBusyButtons();
-  }
+  await commandCenter.openInCode(targetPath, message);
 }
 
 async function openInTerminal(targetPath: string, message: string) {
-  state.terminalPath = targetPath;
-  syncBusyButtons();
-  setStatus(`Launching Terminal for ${targetPath}...`);
-
-  try {
-    await invoke("open_in_terminal", { targetPath });
-    setStatus(message);
-  } catch (error) {
-    setStatus(String(error), true);
-  } finally {
-    state.terminalPath = "";
-    syncBusyButtons();
-  }
+  await commandCenter.openInTerminal(targetPath, message);
 }
 
 async function openInOpencode(targetPath: string, message: string) {
-  state.opencodePath = targetPath;
-  syncBusyButtons();
-  setStatus(`Launching Opencode for ${targetPath}...`);
-
-  try {
-    await invoke("open_in_opencode", { targetPath });
-    setStatus(message);
-  } catch (error) {
-    setStatus(String(error), true);
-  } finally {
-    state.opencodePath = "";
-    syncBusyButtons();
-  }
+  await commandCenter.openInOpencode(targetPath, message);
 }
 
 async function createDefaultWorkspace(project: Project) {
-  state.creatingWorkspacePath = project.path;
-  syncBusyButtons();
-  setStatus(`Creating a default workspace for ${project.name}...`);
-
-  try {
-    await invoke<string>("create_default_workspace", { projectPath: project.path });
-    await fetchProjects();
-    setStatus(`Created a default workspace for ${project.name}.`);
-  } catch (error) {
-    setStatus(String(error), true);
-  } finally {
-    state.creatingWorkspacePath = "";
-    syncBusyButtons();
-  }
-}
-
-function openCreateProjectWorkspaceModal() {
-  createProjectWorkspaceNameEl.value = "";
-  setCreateProjectWorkspaceStatus("");
-  createProjectWorkspaceModalEl.showModal();
-}
-
-function openCreateWorktreeModal() {
-  createWorktreeBranchNameEl.value = "";
-  updateCreateWorktreePreview();
-  setCreateWorktreeStatus("");
-  createWorktreeModalEl.showModal();
-}
-
-function setCreateProjectWorkspaceStatus(message: string, isError = false) {
-  createProjectWorkspaceStatusEl.textContent = message;
-  createProjectWorkspaceStatusEl.dataset.state = isError ? "error" : "default";
-}
-
-function setCreateWorktreeStatus(message: string, isError = false) {
-  createWorktreeStatusEl.textContent = message;
-  createWorktreeStatusEl.dataset.state = isError ? "error" : "default";
-}
-
-function sanitizeName(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._\-/\s]+/g, "")
-    .replace(/[\s/_.-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function updateCreateWorktreePreview() {
-  const branchName = sanitizeName(createWorktreeBranchNameEl.value);
-  const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
-  const repoName = activeProject ? sanitizeName(activeProject.name) : "project";
-
-  if (!branchName) {
-    createWorktreePathPreviewEl.textContent = "Folder name will be generated after you enter a branch.";
-    return;
-  }
-
-  createWorktreePathPreviewEl.textContent = `Folder: ${repoName}-${branchName}`;
+  await commandCenter.createDefaultWorkspace(project);
 }
 
 async function submitCreateProjectWorkspace() {
-  const projectName = createProjectWorkspaceNameEl.value.trim();
+  const projectName = createFlowController.getProjectWorkspaceName();
 
   if (!projectName) {
-    setCreateProjectWorkspaceStatus("Enter a project name first.", true);
+    createFlowController.setProjectWorkspaceStatus("Enter a project name first.", true);
     return;
   }
 
   state.creatingProjectWorkspace = true;
   syncBusyButtons();
-  setCreateProjectWorkspaceStatus("Creating project workspace...");
+  createFlowController.setProjectWorkspaceStatus("Creating project workspace...");
 
   try {
     const result = await invoke<CreateProjectWorkspaceResult>("create_project_workspace", { projectName });
     await fetchProjects();
-    createProjectWorkspaceModalEl.close();
+    createFlowController.closeProjectWorkspaceModal();
     setStatus(`Created ${result.projectPath} with a default workspace.`);
     await openInCode(result.workspacePath, `Opened ${projectName} workspace in VS Code.`);
   } catch (error) {
-    setCreateProjectWorkspaceStatus(String(error), true);
+    createFlowController.setProjectWorkspaceStatus(String(error), true);
   } finally {
     state.creatingProjectWorkspace = false;
     syncBusyButtons();
@@ -636,21 +511,21 @@ async function submitCreateProjectWorkspace() {
 }
 
 async function submitCreateWorktree() {
-  const branchName = createWorktreeBranchNameEl.value.trim();
+  const branchName = createFlowController.getWorktreeBranchName();
 
   if (!state.activeHistoryPath) {
-    setCreateWorktreeStatus("Open a repository first.", true);
+    createFlowController.setWorktreeStatus("Open a repository first.", true);
     return;
   }
 
   if (!branchName) {
-    setCreateWorktreeStatus("Enter a branch name first.", true);
+    createFlowController.setWorktreeStatus("Enter a branch name first.", true);
     return;
   }
 
   state.creatingGitWorktree = true;
   syncBusyButtons();
-  setCreateWorktreeStatus("Creating git worktree...");
+  createFlowController.setWorktreeStatus("Creating git worktree...");
 
   try {
     const result = await invoke<CreateGitWorktreeResult>("create_git_worktree", {
@@ -662,13 +537,13 @@ async function submitCreateWorktree() {
     if (activeProject) {
       await openGitHistory(activeProject);
     }
-    createWorktreeModalEl.close();
+    createFlowController.closeWorktreeModal();
     setStatus(`Created ${result.branch} worktree at ${result.projectPath}.`);
     if (result.workspacePath) {
       await openInCode(result.workspacePath, `Opened ${result.branch} workspace in VS Code.`);
     }
   } catch (error) {
-    setCreateWorktreeStatus(String(error), true);
+    createFlowController.setWorktreeStatus(String(error), true);
   } finally {
     state.creatingGitWorktree = false;
     syncBusyButtons();
@@ -704,24 +579,11 @@ async function pruneGitWorktrees() {
 }
 
 function syncBusyButtons() {
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".status-row button, .project-actions button, #refresh-button, .history-actions button, .worktree-action-button, .create-form button");
-  const isBusy = state.openingPath.length > 0
-    || state.creatingWorkspacePath.length > 0
-    || state.creatingProjectWorkspace
-    || state.creatingGitWorktree
-    || state.pruningGitWorktrees
-    || state.terminalPath.length > 0
-    || state.opencodePath.length > 0;
-
-  for (const button of buttons) {
-    const baseDisabled = button.dataset.baseDisabled === "true";
-    button.disabled = isBusy || baseDisabled;
-  }
+  commandCenter.syncBusyButtons();
 }
 
 function setStatus(message: string, isError = false) {
-  statusEl.textContent = message;
-  statusEl.dataset.state = isError ? "error" : "default";
+  commandCenter.setStatus(message, isError);
 }
 
 function setSettingsStatus(message: string, isError = false) {
@@ -911,6 +773,42 @@ window.addEventListener("DOMContentLoaded", () => {
   colorSchemeDarkButtonEl = document.querySelector("#theme-dark") as HTMLButtonElement;
   colorSchemeSystemButtonEl = document.querySelector("#theme-system") as HTMLButtonElement;
 
+  commandCenter = createCommandCenter({
+    status: statusEl,
+    getBusyState: () => ({
+      openingPath: state.openingPath,
+      creatingWorkspacePath: state.creatingWorkspacePath,
+      creatingProjectWorkspace: state.creatingProjectWorkspace,
+      creatingGitWorktree: state.creatingGitWorktree,
+      pruningGitWorktrees: state.pruningGitWorktrees,
+      terminalPath: state.terminalPath,
+      opencodePath: state.opencodePath,
+    }),
+    patchBusyState: (patch) => {
+      Object.assign(state, patch);
+    },
+    invokeCommand: async (command, args) => await invoke(command, args),
+    refreshProjects: fetchProjects,
+  });
+
+  createFlowController = createCreateFlowController({
+    createProjectWorkspaceModal: createProjectWorkspaceModalEl,
+    createProjectWorkspaceName: createProjectWorkspaceNameEl,
+    createProjectWorkspaceStatus: createProjectWorkspaceStatusEl,
+    createWorktreeModal: createWorktreeModalEl,
+    createWorktreeBranchName: createWorktreeBranchNameEl,
+    createWorktreePathPreview: createWorktreePathPreviewEl,
+    createWorktreeStatus: createWorktreeStatusEl,
+  });
+
+  projectsPanel = createProjectsPanel({
+    projectGrid: projectGridEl,
+    projectCount: projectCountEl,
+    workspaceCount: workspaceCountEl,
+    viewDetailedButton: viewDetailedButtonEl,
+    viewCompactButton: viewCompactButtonEl,
+  });
+
   settingsPanel = createSettingsPanel({
     appBrandIcon: appBrandIconEl,
     toolbarAppIcon: toolbarAppIconEl,
@@ -1070,11 +968,12 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   createProjectWorkspaceButtonEl.addEventListener("click", () => {
-    openCreateProjectWorkspaceModal();
+    createFlowController.openProjectWorkspaceModal();
   });
 
   createWorktreeButtonEl.addEventListener("click", () => {
-    openCreateWorktreeModal();
+    const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
+    createFlowController.openWorktreeModal(activeProject?.name ?? "project");
   });
 
   pruneWorktreesButtonEl.addEventListener("click", async () => {
@@ -1082,11 +981,11 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   createProjectWorkspaceCloseButtonEl.addEventListener("click", () => {
-    createProjectWorkspaceModalEl.close();
+    createFlowController.closeProjectWorkspaceModal();
   });
 
   createWorktreeCloseButtonEl.addEventListener("click", () => {
-    createWorktreeModalEl.close();
+    createFlowController.closeWorktreeModal();
   });
 
   createProjectWorkspaceFormEl.addEventListener("submit", async (event) => {
@@ -1100,7 +999,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   createWorktreeBranchNameEl.addEventListener("input", () => {
-    updateCreateWorktreePreview();
+    const activeProject = state.projects.find((project) => project.path === state.activeHistoryPath);
+    createFlowController.updateWorktreePreview(activeProject?.name ?? "project");
   });
 
   historyModalEl.addEventListener("close", () => {
