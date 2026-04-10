@@ -64,6 +64,19 @@ function getIconPaths(name: IconName) {
         { tag: "path", attributes: { ...common, d: "M16 9.5 18.5 12 16 14.5" } },
         { tag: "path", attributes: { ...common, d: "M10.5 16l3-8" } },
       ];
+    case "archive":
+      return [
+        { tag: "path", attributes: { ...common, d: "M4.5 8.5h15" } },
+        { tag: "path", attributes: { ...common, d: "M6 8.5V18a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8.5" } },
+        { tag: "path", attributes: { ...common, d: "M10 12.5 12 14.5l2-2" } },
+        { tag: "path", attributes: { ...common, d: "M12 10v4" } },
+      ];
+    case "more":
+      return [
+        { tag: "circle", attributes: { ...common, cx: "12", cy: "6", r: "1" } },
+        { tag: "circle", attributes: { ...common, cx: "12", cy: "12", r: "1" } },
+        { tag: "circle", attributes: { ...common, cx: "12", cy: "18", r: "1" } },
+      ];
     case "folder":
     default:
       return [

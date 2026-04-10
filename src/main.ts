@@ -113,6 +113,7 @@ const state = {
   pruningGitWorktrees: false,
   terminalPath: "",
   opencodePath: "",
+  archivingPath: "",
   viewMode: loadViewMode(),
   colorSchemeMode: loadColorSchemeMode(),
   appTheme: "neon" as AppTheme,
@@ -166,6 +167,14 @@ let createWorktreeFormEl: HTMLFormElement;
 let createWorktreeBranchNameEl: HTMLInputElement;
 let createWorktreePathPreviewEl: HTMLElement;
 let createWorktreeStatusEl: HTMLElement;
+let archiveConfirmModalEl: HTMLDialogElement;
+let archiveConfirmCloseButtonEl: HTMLButtonElement;
+let archiveConfirmTitleEl: HTMLElement;
+let archiveConfirmCopyEl: HTMLElement;
+let archiveConfirmPathEl: HTMLElement;
+let archiveConfirmStatusEl: HTMLElement;
+let archiveConfirmCancelButtonEl: HTMLButtonElement;
+let archiveConfirmSubmitButtonEl: HTMLButtonElement;
 let commitModalEl: HTMLDialogElement;
 let commitCloseButtonEl: HTMLButtonElement;
 let commitSubjectEl: HTMLElement;
@@ -200,6 +209,7 @@ let createFlowController: ReturnType<typeof createCreateFlowController>;
 let settingsPanel: ReturnType<typeof createSettingsPanel>;
 let gitHistoryPanel: ReturnType<typeof createGitHistoryPanel>;
 let projectsPanel: ReturnType<typeof createProjectsPanel>;
+let pendingArchiveProject: Project | null = null;
 
 async function initializeApp() {
   void fetchAppVersion();
@@ -321,6 +331,7 @@ function renderProjects() {
       openInOpencode,
       openGitHistory,
       createDefaultWorkspace,
+      archiveProject,
     }));
 
   syncBusyButtons();
@@ -483,6 +494,61 @@ async function openInOpencode(targetPath: string, message: string) {
 
 async function createDefaultWorkspace(project: Project) {
   await commandCenter.createDefaultWorkspace(project);
+}
+
+async function archiveProject(project: Project) {
+  pendingArchiveProject = project;
+  archiveConfirmTitleEl.textContent = `Archive ${project.name}?`;
+  archiveConfirmCopyEl.textContent = "This moves the project folder out of the active dashboard root and into the sibling archive directory.";
+  archiveConfirmPathEl.textContent = getArchiveDestination(project.path);
+  archiveConfirmStatusEl.textContent = "";
+  archiveConfirmStatusEl.dataset.state = "default";
+  archiveConfirmModalEl.showModal();
+}
+
+async function confirmArchiveProject() {
+  if (!pendingArchiveProject) {
+    return;
+  }
+
+  const project = pendingArchiveProject;
+  state.archivingPath = project.path;
+  syncBusyButtons();
+  archiveConfirmStatusEl.textContent = `Archiving ${project.name}...`;
+  archiveConfirmStatusEl.dataset.state = "default";
+  archiveConfirmSubmitButtonEl.disabled = true;
+  archiveConfirmCancelButtonEl.disabled = true;
+
+  try {
+    const archivePath = await invoke<string>("archive_project", { projectPath: project.path });
+    await fetchProjects();
+    archiveConfirmModalEl.close();
+    setStatus(`Archived ${project.name} to ${archivePath}.`);
+  } catch (error) {
+    archiveConfirmStatusEl.textContent = String(error);
+    archiveConfirmStatusEl.dataset.state = "error";
+  } finally {
+    state.archivingPath = "";
+    archiveConfirmSubmitButtonEl.disabled = false;
+    archiveConfirmCancelButtonEl.disabled = false;
+    syncBusyButtons();
+  }
+}
+
+function getArchiveDestination(projectPath: string) {
+  const project = projectPath.split("/").filter(Boolean).pop() ?? "project";
+  const configuredRoot = state.settings?.projectRoot?.trim();
+
+  if (!configuredRoot) {
+    return `../archive/${project}`;
+  }
+
+  const rootSegments = configuredRoot.split("/").filter(Boolean);
+  if (rootSegments.length === 0) {
+    return `../archive/${project}`;
+  }
+
+  return `/${rootSegments.slice(0, -1).join("/")}/archive/${project}`;
 }
 
 async function submitCreateProjectWorkspace() {
@@ -745,6 +811,14 @@ window.addEventListener("DOMContentLoaded", () => {
   createWorktreeBranchNameEl = document.querySelector("#create-worktree-branch-name") as HTMLInputElement;
   createWorktreePathPreviewEl = document.querySelector("#create-worktree-path-preview") as HTMLElement;
   createWorktreeStatusEl = document.querySelector("#create-worktree-status") as HTMLElement;
+  archiveConfirmModalEl = document.querySelector("#archive-confirm-modal") as HTMLDialogElement;
+  archiveConfirmCloseButtonEl = document.querySelector("#archive-confirm-close") as HTMLButtonElement;
+  archiveConfirmTitleEl = document.querySelector("#archive-confirm-title") as HTMLElement;
+  archiveConfirmCopyEl = document.querySelector("#archive-confirm-copy") as HTMLElement;
+  archiveConfirmPathEl = document.querySelector("#archive-confirm-path") as HTMLElement;
+  archiveConfirmStatusEl = document.querySelector("#archive-confirm-status") as HTMLElement;
+  archiveConfirmCancelButtonEl = document.querySelector("#archive-confirm-cancel") as HTMLButtonElement;
+  archiveConfirmSubmitButtonEl = document.querySelector("#archive-confirm-submit") as HTMLButtonElement;
   commitModalEl = document.querySelector("#commit-modal") as HTMLDialogElement;
   commitCloseButtonEl = document.querySelector("#commit-close") as HTMLButtonElement;
   commitSubjectEl = document.querySelector("#commit-subject") as HTMLElement;
@@ -784,6 +858,7 @@ window.addEventListener("DOMContentLoaded", () => {
       pruningGitWorktrees: state.pruningGitWorktrees,
       terminalPath: state.terminalPath,
       opencodePath: state.opencodePath,
+      archivingPath: state.archivingPath,
     }),
     patchBusyState: (patch) => {
       Object.assign(state, patch);
@@ -989,6 +1064,18 @@ window.addEventListener("DOMContentLoaded", () => {
     createFlowController.closeWorktreeModal();
   });
 
+  archiveConfirmCloseButtonEl.addEventListener("click", () => {
+    archiveConfirmModalEl.close();
+  });
+
+  archiveConfirmCancelButtonEl.addEventListener("click", () => {
+    archiveConfirmModalEl.close();
+  });
+
+  archiveConfirmSubmitButtonEl.addEventListener("click", async () => {
+    await confirmArchiveProject();
+  });
+
   createProjectWorkspaceFormEl.addEventListener("submit", async (event) => {
     event.preventDefault();
     await submitCreateProjectWorkspace();
@@ -1026,6 +1113,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   releaseNotesModalEl.addEventListener("close", () => {
     document.body.classList.remove("modal-open");
+  });
+
+  archiveConfirmModalEl.addEventListener("close", () => {
+    pendingArchiveProject = null;
+    archiveConfirmStatusEl.textContent = "";
+    archiveConfirmStatusEl.dataset.state = "default";
+    archiveConfirmSubmitButtonEl.disabled = false;
+    archiveConfirmCancelButtonEl.disabled = false;
   });
 
   void listen("tray://refresh-projects", async () => {

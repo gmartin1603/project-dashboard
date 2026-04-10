@@ -172,6 +172,26 @@
         </div>
       </dialog>
 
+      <dialog class="create-modal" id="archive-confirm-modal">
+        <div class="history-modal-header">
+          <div>
+            <p class="section-label">Archive Project</p>
+            <h2 id="archive-confirm-title">Archive project?</h2>
+            <p class="history-overview" id="archive-confirm-copy"></p>
+          </div>
+          <button id="archive-confirm-close" class="icon-button" type="button" aria-label="Close archive confirmation">Close</button>
+        </div>
+        <div class="archive-confirm-body">
+          <p class="detail-label">Destination</p>
+          <p class="archive-confirm-path" id="archive-confirm-path"></p>
+          <p class="settings-status" id="archive-confirm-status" data-state="default"></p>
+          <div class="settings-actions">
+            <button id="archive-confirm-cancel" class="button-secondary" type="button">Cancel</button>
+            <button id="archive-confirm-submit" type="button">Archive Project</button>
+          </div>
+        </div>
+      </dialog>
+
       <dialog class="tray-hint-modal" id="tray-hint-modal">
         <div class="history-modal-header">
           <div>
@@ -323,6 +343,7 @@
               </label>
             </div>
           </section>
+
         </form>
       </dialog>
 

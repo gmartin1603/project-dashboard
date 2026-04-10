@@ -1940,6 +1940,77 @@ fn validate_path_within_code_root(target_path: &str) -> Result<PathBuf, String> 
     Ok(candidate)
 }
 
+fn archive_directory_for_root(root: &Path) -> Result<PathBuf, String> {
+    let parent = root.parent().ok_or_else(|| {
+        format!(
+            "Could not determine an archive directory for {}.",
+            root.display()
+        )
+    })?;
+
+    Ok(parent.join("archive"))
+}
+
+fn validate_project_path_for_archive(target_path: &str) -> Result<PathBuf, String> {
+    let candidate = validate_path_within_code_root(target_path)?;
+
+    if !candidate.is_dir() {
+        return Err(format!("{} is not a project folder.", candidate.display()));
+    }
+
+    let root = configured_project_root()?;
+    let parent = candidate.parent().ok_or_else(|| {
+        format!(
+            "Could not determine the parent directory for {}.",
+            candidate.display()
+        )
+    })?;
+
+    if parent != root {
+        return Err(format!(
+            "Refused to archive {} because it is not a direct child of {}",
+            candidate.display(),
+            root.display()
+        ));
+    }
+
+    Ok(candidate)
+}
+
+#[tauri::command]
+fn archive_project(project_path: String) -> Result<String, String> {
+    let candidate = validate_project_path_for_archive(&project_path)?;
+    let root = configured_project_root()?;
+    let archive_dir = archive_directory_for_root(&root)?;
+    fs::create_dir_all(&archive_dir)
+        .map_err(|error| format!("Could not create {}: {error}", archive_dir.display()))?;
+
+    let project_name = candidate.file_name().ok_or_else(|| {
+        format!(
+            "Could not determine the folder name for {}.",
+            candidate.display()
+        )
+    })?;
+    let archive_target = archive_dir.join(project_name);
+
+    if archive_target.exists() {
+        return Err(format!(
+            "Archive target {} already exists.",
+            archive_target.display()
+        ));
+    }
+
+    fs::rename(&candidate, &archive_target).map_err(|error| {
+        format!(
+            "Could not archive {} to {}: {error}",
+            candidate.display(),
+            archive_target.display()
+        )
+    })?;
+
+    Ok(archive_target.to_string_lossy().into_owned())
+}
+
 fn has_any_extension(project_path: &Path, extensions: &[&str]) -> bool {
     let Ok(entries) = fs::read_dir(project_path) else {
         return false;
@@ -2101,6 +2172,7 @@ pub fn run() {
             update_layout,
             update_app_theme,
             list_projects,
+            archive_project,
             open_in_code,
             open_in_terminal,
             open_in_opencode,

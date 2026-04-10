@@ -8,6 +8,7 @@ type BusyState = {
   pruningGitWorktrees: boolean;
   terminalPath: string;
   opencodePath: string;
+  archivingPath: string;
 };
 
 type CommandCenterDependencies = {
@@ -26,7 +27,7 @@ export function createCommandCenter(dependencies: CommandCenterDependencies) {
 
   function syncBusyButtons() {
     const buttons = document.querySelectorAll<HTMLButtonElement>(
-      ".status-row button, .project-actions button, #refresh-button, .history-actions button, .worktree-action-button, .create-form button",
+      ".project-card button, #refresh-button, .history-actions button, .worktree-action-button, .create-form button",
     );
     const busyState = dependencies.getBusyState();
     const isBusy = busyState.openingPath.length > 0
@@ -35,7 +36,8 @@ export function createCommandCenter(dependencies: CommandCenterDependencies) {
       || busyState.creatingGitWorktree
       || busyState.pruningGitWorktrees
       || busyState.terminalPath.length > 0
-      || busyState.opencodePath.length > 0;
+      || busyState.opencodePath.length > 0
+      || busyState.archivingPath.length > 0;
 
     for (const button of buttons) {
       const baseDisabled = button.dataset.baseDisabled === "true";

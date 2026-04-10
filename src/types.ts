@@ -13,7 +13,7 @@ export type Project = {
 };
 
 export type ViewMode = "detailed" | "compact";
-export type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode";
+export type IconName = "workspace" | "folder" | "git" | "terminal" | "opencode" | "archive" | "more";
 export type TrayIconName = "grid" | "orbit" | "stacks";
 export type CardActionName = "workspace" | "folder" | "terminal" | "opencode" | "git" | "none";
 export type LayoutName = "standard" | "sidebar-dock";
